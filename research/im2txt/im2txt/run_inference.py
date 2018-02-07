@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import math
 import os
-
+import glob
 
 import tensorflow as tf
 
@@ -54,12 +54,11 @@ def main(_):
   # Create the vocabulary.
   vocab = vocabulary.Vocabulary(FLAGS.vocab_file)
 
-  filenames = []
-  for file_pattern in FLAGS.input_files.split(","):
-    filenames.extend(tf.gfile.Glob(file_pattern))
-  tf.logging.info("Running caption generation on %d files matching %s",
-                  len(filenames), FLAGS.input_files)
-
+  filenames = glob.glob(FLAGS.input_files)
+  # for file_pattern in FLAGS.input_files.split(","):
+  #   filenames.extend(tf.gfile.Glob(file_pattern))
+  # tf.logging.info("Running caption generation on %d files matching %s",
+  #                 len(filenames), FLAGS.input_files)
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.
     restore_fn(sess)
@@ -68,7 +67,6 @@ def main(_):
     # beam search parameters. See caption_generator.py for a description of the
     # available beam search parameters.
     generator = caption_generator.CaptionGenerator(model, vocab)
-
     for filename in filenames:
       with tf.gfile.GFile(filename, "r") as f:
         image = f.read()

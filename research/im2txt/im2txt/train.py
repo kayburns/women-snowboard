@@ -37,6 +37,7 @@ tf.flags.DEFINE_boolean("train_inception", False,
 tf.flags.DEFINE_integer("number_of_steps", 1000000, "Number of training steps.")
 tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
+tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters.")   
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -97,6 +98,14 @@ def main(unused_argv):
 
     # Set up the Saver for saving and restoring model checkpoints.
     saver = tf.train.Saver(max_to_keep=training_config.max_checkpoints_to_keep)
+
+    if FLAGS.init_from:
+      inception_restore = model.init_fn
+      def restore_full_model(sess):
+        print("restoring full model")
+        inception_restore(sess)
+        saver.restore(sess, FLAGS.init_from)
+      model.init_fn = restore_full_model
 
   # Run training.
   tf.contrib.slim.learning.train(

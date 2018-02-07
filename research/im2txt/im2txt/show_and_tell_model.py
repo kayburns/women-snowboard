@@ -30,6 +30,10 @@ from im2txt.ops import image_embedding
 from im2txt.ops import image_processing
 from im2txt.ops import inputs as input_ops
 
+from inference_utils import vocabulary
+
+from PIL import Image
+import numpy as np
 
 class ShowAndTellModel(object):
   """Image-to-text implementation based on http://arxiv.org/abs/1411.4555.
@@ -46,7 +50,7 @@ class ShowAndTellModel(object):
       mode: "train", "eval" or "inference".
       train_inception: Whether the inception submodel variables are trainable.
     """
-    assert mode in ["train", "eval", "inference"]
+    assert mode in ["train", "eval", "saliency", "inference"]
     self.config = config
     self.mode = mode
     self.train_inception = train_inception
@@ -68,7 +72,7 @@ class ShowAndTellModel(object):
 
     # An int32 Tensor with shape [batch_size, padded_length].
     self.target_seqs = None
-
+    
     # An int32 0/1 Tensor with shape [batch_size, padded_length].
     self.input_mask = None
 
@@ -95,6 +99,9 @@ class ShowAndTellModel(object):
 
     # Global step Tensor.
     self.global_step = None
+
+    # Number of patches generated in saliency model.
+    self.num_patches = None
 
   def is_training(self):
     """Returns true if the model is built for training mode."""
@@ -127,7 +134,38 @@ class ShowAndTellModel(object):
       self.target_seqs (training and eval only)
       self.input_mask (training and eval only)
     """
-    if self.mode == "inference":
+    if self.mode == "saliency":
+      # In saliency mode, images are fed via placeholders.
+      image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
+      input_feed = tf.placeholder(dtype=tf.int64, shape=[None],
+                                  name="input_feed")
+
+      # calculate new dimension with image patches
+      images = self.process_image(image_feed)
+      width, height = images.get_shape().as_list()[:2]
+      patch_dim = 32
+      self.num_patches = (width // patch_dim) * (height // patch_dim)
+
+      # construct input and target sequence, duplicate to match num patches
+      input_length = tf.shape(input_feed)[0] - 1 # TODO: add start and end characters instead of truncating
+      input_seqs = tf.slice(input_feed, [0], [input_length])
+      self.target_seqs = tf.slice(input_feed, [1], [input_length])
+      input_seqs = tf.tile(tf.expand_dims(input_seqs,0), [self.num_patches, 1])
+      self.target_seqs = tf.tile(tf.expand_dims(self.target_seqs, 0), [self.num_patches, 1])
+      print("target_seqs: ", self.target_seqs)     
+
+      # Process image and insert batch dimensions.
+      images = tf.expand_dims(images, 0)
+      ksizes = [1, patch_dim, patch_dim, 1]
+      images = tf.extract_image_patches(images, ksizes=ksizes, strides=ksizes,
+                                        rates=[1, 1, 1, 1], padding='VALID')
+      images = tf.reshape(images,[-1, patch_dim, patch_dim, 3])
+      paddings = tf.constant([[0,0],[0,width-patch_dim],[0,height-patch_dim],[0,0]], dtype='int32')
+      images = tf.pad(images, paddings)
+      print("images: ", images)
+      input_mask = None
+
+    elif self.mode == "inference":
       # In inference mode, images and inputs are fed via placeholders.
       image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
       input_feed = tf.placeholder(dtype=tf.int64,
@@ -139,8 +177,9 @@ class ShowAndTellModel(object):
       input_seqs = tf.expand_dims(input_feed, 1)
 
       # No target sequences or input mask in inference mode.
-      target_seqs = None
+      # No input mask in saliency mode. Single sentence not padded.
       input_mask = None
+        
     else:
       # Prefetch serialized SequenceExample protos.
       input_queue = input_ops.prefetch_input_data(
@@ -158,13 +197,21 @@ class ShowAndTellModel(object):
       images_and_captions = []
       for thread_id in range(self.config.num_preprocess_threads):
         serialized_sequence_example = input_queue.dequeue()
+      assert self.config.num_preprocess_threads % 2 == 0
+      images_and_captions = []
+      for thread_id in range(self.config.num_preprocess_threads):
+        serialized_sequence_example = input_queue.dequeue()
+      assert self.config.num_preprocess_threads % 2 == 0
+      images_and_captions = []
+      for thread_id in range(self.config.num_preprocess_threads):
+        serialized_sequence_example = input_queue.dequeue()
         encoded_image, caption = input_ops.parse_sequence_example(
             serialized_sequence_example,
             image_feature=self.config.image_feature_name,
             caption_feature=self.config.caption_feature_name)
         image = self.process_image(encoded_image, thread_id=thread_id)
         images_and_captions.append([image, caption])
-
+      
       # Batch inputs.
       queue_capacity = (2 * self.config.num_preprocess_threads *
                         self.config.batch_size)
@@ -172,10 +219,10 @@ class ShowAndTellModel(object):
           input_ops.batch_with_dynamic_pad(images_and_captions,
                                            batch_size=self.config.batch_size,
                                            queue_capacity=queue_capacity))
+      self.target_seqs = target_seqs
 
     self.images = images
     self.input_seqs = input_seqs
-    self.target_seqs = target_seqs
     self.input_mask = input_mask
 
   def build_image_embeddings(self):
@@ -211,6 +258,7 @@ class ShowAndTellModel(object):
 
   def build_seq_embeddings(self):
     """Builds the input sequence embeddings.
+    # An int32 Tensor with shape [batch_size, padded_length].
 
     Inputs:
       self.input_seqs
@@ -225,6 +273,7 @@ class ShowAndTellModel(object):
           initializer=self.initializer)
       seq_embeddings = tf.nn.embedding_lookup(embedding_map, self.input_seqs)
 
+    print(seq_embeddings)
     self.seq_embeddings = seq_embeddings
 
   def build_model(self):
@@ -233,7 +282,7 @@ class ShowAndTellModel(object):
     Inputs:
       self.image_embeddings
       self.seq_embeddings
-      self.target_seqs (training and eval only)
+      self.target_seqs (training, eval, and saliency only)
       self.input_mask (training and eval only)
 
     Outputs:
@@ -279,6 +328,15 @@ class ShowAndTellModel(object):
 
         # Concatentate the resulting state.
         tf.concat(axis=1, values=state_tuple, name="state")
+
+      elif self.mode == "saliency":
+        # Run the batch of sequence embeddings through the LSTM.
+        lstm_outputs, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
+                                            inputs=self.seq_embeddings,
+                                            initial_state=initial_state,
+                                            dtype=tf.float32,
+                                            scope=lstm_scope)
+
       else:
         # Run the batch of sequence embeddings through the LSTM.
         sequence_length = tf.reduce_sum(self.input_mask, 1)
@@ -290,7 +348,9 @@ class ShowAndTellModel(object):
                                             scope=lstm_scope)
 
     # Stack batches vertically.
+    print("lstm_outputs before reshape: ", lstm_outputs)
     lstm_outputs = tf.reshape(lstm_outputs, [-1, lstm_cell.output_size])
+    print("lstm_outputs: ", lstm_outputs)
 
     with tf.variable_scope("logits") as logits_scope:
       logits = tf.contrib.layers.fully_connected(
@@ -299,9 +359,16 @@ class ShowAndTellModel(object):
           activation_fn=None,
           weights_initializer=self.initializer,
           scope=logits_scope)
+      print("logits: ", logits)
 
     if self.mode == "inference":
       tf.nn.softmax(logits, name="softmax")
+    elif self.mode == "saliency":
+      targets = tf.reshape(self.target_seqs, [-1])
+      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits)
+      print("loss :", loss)
+      self.target_cross_entropy_losses = loss
+      # self.target_cross_entropy_losses = tf.reshape(loss, [self.num_patches, tf.shape(loss)[0]/self.num_patches]) # Used to generate saliency
     else:
       targets = tf.reshape(self.target_seqs, [-1])
       weights = tf.to_float(tf.reshape(self.input_mask, [-1]))
