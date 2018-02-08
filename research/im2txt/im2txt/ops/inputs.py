@@ -23,7 +23,7 @@ import tensorflow as tf
 from im2txt.inference_utils import vocabulary
 
 vocab_file = 'im2txt/data/word_counts.txt'
-vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
+#vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
 loss_weight_words = ['man', 'woman']
 
 def parse_sequence_example(serialized, image_feature, caption_feature):
@@ -199,7 +199,6 @@ def batch_with_dynamic_pad(images_and_captions,
         #need to find which input values match words
         loss_weight_bool = []
         for loss_weight_id in loss_weight_ids:
-            loss_weight_bool.append(tf.slice(caption, [1], input_length))
             loss_weight_bool.append(tf.cast(
                                     tf.equal(target_seq, loss_weight_id, name=None),
                                     dtype=tf.int32))
@@ -230,4 +229,4 @@ def batch_with_dynamic_pad(images_and_captions,
     #do some simple checking to see if the indicator function looks right
     tf.summary.scalar("caption_length/indicator_max", tf.reduce_max(indicator))
 
-  return images, input_seqs, target_seqs, mask, loss_weight_bool, loss_weight_sum
+  return images, input_seqs, target_seqs, mask
