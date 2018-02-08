@@ -42,7 +42,7 @@ class ShowAndTellModel(object):
   Oriol Vinyals, Alexander Toshev, Samy Bengio, Dumitru Erhan
   """
 
-  def __init__(self, config, mode, train_inception=False):
+  def __init__(self, config, mode, train_inception=False, flags=None):
     """Basic setup.
 
     Args:
@@ -54,7 +54,8 @@ class ShowAndTellModel(object):
     self.config = config
     self.mode = mode
     self.train_inception = train_inception
-
+    self.flags = flags
+  
     # Reader for the input data.
     self.reader = tf.TFRecordReader()
 
@@ -218,7 +219,8 @@ class ShowAndTellModel(object):
       images, input_seqs, target_seqs, input_mask = (
           input_ops.batch_with_dynamic_pad(images_and_captions,
                                            batch_size=self.config.batch_size,
-                                           queue_capacity=queue_capacity))
+                                           queue_capacity=queue_capacity,
+                                           loss_weight_value=self.flags.loss_weight_value))
       self.target_seqs = target_seqs
 
     self.images = images

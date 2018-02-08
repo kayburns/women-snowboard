@@ -39,6 +39,9 @@ tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
 tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters.")   
 
+#to control loss function
+tf.flags.DEFINE_integer("loss_weight_value", None, "To increase loss weight on man/woman words.")   
+
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
@@ -62,7 +65,8 @@ def main(unused_argv):
   with g.as_default():
     # Build the model.
     model = show_and_tell_model.ShowAndTellModel(
-        model_config, mode="train", train_inception=FLAGS.train_inception)
+        model_config, mode="train", train_inception=FLAGS.train_inception,
+        flags=FLAGS) #let's just pass in all the flags bc this is going to get annoying
     model.build()
 
     # Set up the learning rate.

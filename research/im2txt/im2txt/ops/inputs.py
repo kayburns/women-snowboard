@@ -19,9 +19,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import tensorflow as tf
+from im2txt.inference_utils import vocabulary
 
+vocab_file = 'im2txt/data/word_counts.txt'
+loss_weight_words = ['man', 'woman']
 
 def parse_sequence_example(serialized, image_feature, caption_feature):
   """Parses a tensorflow.SequenceExample into an image and caption.
@@ -126,7 +128,8 @@ def prefetch_input_data(reader,
 def batch_with_dynamic_pad(images_and_captions,
                            batch_size,
                            queue_capacity,
-                           add_summaries=True):
+                           add_summaries=True, 
+                           loss_weight_value=None):
   """Batches input images and captions.
 
   This function splits the caption into an input sequence and a target sequence,
@@ -178,6 +181,11 @@ def batch_with_dynamic_pad(images_and_captions,
     target_seqs: An int32 Tensor of shape [batch_size, padded_length].
     mask: An int32 0/1 Tensor of shape [batch_size, padded_length].
   """
+
+  if loss_weight_value:
+      vocab = vocabulary.Vocabulary(vocab_file) 
+      loss_weight_ids = [vocab.word_to_id(word) for word in loss_weight_words]
+
   enqueue_list = []
   for image, caption in images_and_captions:
     caption_length = tf.shape(caption)[0]
@@ -186,7 +194,20 @@ def batch_with_dynamic_pad(images_and_captions,
     input_seq = tf.slice(caption, [0], input_length)
     target_seq = tf.slice(caption, [1], input_length)
     indicator = tf.ones(input_length, dtype=tf.int32)
+    if loss_weight_value:
+        #need to find which input values match words
+        loss_weight_bool = []
+        for loss_weight_id in loss_weight_ids:
+            loss_weight_bool.append(tf.cast(
+                                    tf.equal(input_seq, loss_weight_id, name=None),
+                                    dtype=tf.int32))
+        loss_weight_sum = tf.add_n(loss_weight_bool)
+        loss_weight_sum = tf.scalar_mul(tf.constant(loss_weight_value), loss_weight_sum) 
+        indicator = tf.multiply(loss_weight_sum, indicator)       
+ 
     enqueue_list.append([image, input_seq, target_seq, indicator])
+    
+    
 
   images, input_seqs, target_seqs, mask = tf.train.batch_join(
       enqueue_list,
@@ -200,5 +221,8 @@ def batch_with_dynamic_pad(images_and_captions,
     tf.summary.scalar("caption_length/batch_min", tf.reduce_min(lengths))
     tf.summary.scalar("caption_length/batch_max", tf.reduce_max(lengths))
     tf.summary.scalar("caption_length/batch_mean", tf.reduce_mean(lengths))
+
+    #do some simple checking to see if the indicator function looks right
+    tf.summary.scalar("caption_length/indicator_max", tf.reduce_max(indicator))
 
   return images, input_seqs, target_seqs, mask
