@@ -20,6 +20,7 @@ from __future__ import print_function
 
 
 import tensorflow as tf
+from tensorflow.python import debug as tf_debug
 
 from im2txt import configuration
 from im2txt import show_and_tell_model
@@ -34,6 +35,8 @@ tf.flags.DEFINE_string("train_dir", "",
                        "Directory for saving and loading model checkpoints.")
 tf.flags.DEFINE_boolean("train_inception", False,
                         "Whether to train inception submodel variables.")
+tf.flags.DEFINE_boolean("debug", False,
+                        "If the model should be run in debug mode.")
 tf.flags.DEFINE_integer("number_of_steps", 1000000, "Number of training steps.")
 tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
@@ -112,15 +115,27 @@ def main(unused_argv):
       model.init_fn = restore_full_model
 
   # Run training.
-  tf.contrib.slim.learning.train(
-      train_op,
-      train_dir,
-      log_every_n_steps=FLAGS.log_every_n_steps,
-      graph=g,
-      global_step=model.global_step,
-      number_of_steps=FLAGS.number_of_steps,
-      init_fn=model.init_fn,
-      saver=saver)
+  if FLAGS.debug:
+    tf.contrib.slim.learning.train(
+        train_op,
+        train_dir,
+        log_every_n_steps=FLAGS.log_every_n_steps,
+        graph=g,
+        global_step=model.global_step,
+        number_of_steps=FLAGS.number_of_steps,
+        init_fn=model.init_fn,
+        saver=saver,
+        session_wrapper=tf_debug.LocalCLIDebugWrapperSession)
+  else:
+    tf.contrib.slim.learning.train(
+        train_op,
+        train_dir,
+        log_every_n_steps=FLAGS.log_every_n_steps,
+        graph=g,
+        global_step=model.global_step,
+        number_of_steps=FLAGS.number_of_steps,
+        init_fn=model.init_fn,
+        saver=saver)
 
 
 if __name__ == "__main__":
