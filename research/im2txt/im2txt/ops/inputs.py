@@ -201,9 +201,12 @@ def batch_with_dynamic_pad(images_and_captions,
             loss_weight_bool.append(tf.cast(
                                     tf.equal(input_seq, loss_weight_id, name=None),
                                     dtype=tf.int32))
+        #loss weight should be list of binary tensors; add the tensors to account for each word 
         loss_weight_sum = tf.add_n(loss_weight_bool)
-        loss_weight_sum = tf.scalar_mul(tf.constant(loss_weight_value), loss_weight_sum) 
-        indicator = tf.multiply(loss_weight_sum, indicator)       
+        #multiply by loss_weight_value-1; weight loss should now be tensor with 0s and values of loss_weight_value-1
+        loss_weight_sum = tf.scalar_mul(tf.constant(loss_weight_value-1), loss_weight_sum) 
+        #add one to all values; now indicator should have 1's and values = loss_weight_value
+        indicator = tf.add(loss_weight_sum, indicator)       
  
     enqueue_list.append([image, input_seq, target_seq, indicator])
     
