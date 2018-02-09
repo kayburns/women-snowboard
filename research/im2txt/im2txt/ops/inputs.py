@@ -30,6 +30,16 @@ if vocab_file != 'im2txt/data/word_counts.txt':
     pdb.set_trace()
 loss_weight_words = ['man', 'woman']
 
+def expand_list(l):
+    new_l = []
+    for item in l:
+        if isinstance(item, list):
+            for i in item:
+                l.append(i)
+        else:
+            l.append(l)
+    return l
+
 def parse_sequence_example(serialized, image_feature, caption_feature):
   """Parses a tensorflow.SequenceExample into an image and caption.
 
@@ -44,6 +54,34 @@ def parse_sequence_example(serialized, image_feature, caption_feature):
     encoded_image: A scalar string Tensor containing a JPEG encoded image.
     caption: A 1-D uint64 Tensor with dynamically specified length.
   """
+  context, sequence = tf.parse_single_sequence_example(
+      serialized,
+      context_features={
+          image_feature: tf.FixedLenFeature([], dtype=tf.string)
+      },
+      sequence_features={
+          caption_feature: tf.FixedLenSequenceFeature([], dtype=tf.int64),
+      })
+
+  encoded_image = context[image_feature]
+  caption = sequence[caption_feature]
+  return encoded_image, caption
+
+def parse_sequence_example_blocked_images(serialized, image_feature, caption_feature):
+  """Parses a tensorflow.SequenceExample into an image and caption.
+
+  Args:
+    serialized: A scalar string Tensor; a single serialized SequenceExample.
+    image_feature: Name of SequenceExample context feature containing image
+      data.
+    caption_feature: Name of SequenceExample feature list containing integer
+      captions.
+
+  Returns:
+    encoded_image: A scalar string Tensor containing a JPEG encoded image.
+    caption: A 1-D uint64 Tensor with dynamically specified length.
+  """
+  import pdb; pdb.set_trace()
   context, sequence = tf.parse_single_sequence_example(
       serialized,
       context_features={
@@ -193,6 +231,7 @@ def batch_with_dynamic_pad(images_and_captions,
 
   enqueue_list = []
   for image, caption in images_and_captions:
+    num_image_sets = len(image)
     caption_length = tf.shape(caption)[0]
     input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0)
 
@@ -213,9 +252,10 @@ def batch_with_dynamic_pad(images_and_captions,
         #add one to all values; now indicator should have 1's and values = loss_weight_value
         indicator = tf.add(loss_weight_sum, indicator)       
  
-    enqueue_list.append([image, input_seq, target_seq, indicator])
+    enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
     
-  images, input_seqs, target_seqs, mask = tf.train.batch_join(
+  #images, input_seqs, target_seqs, mask = tf.train.batch_join(
+  outputs = tf.train.batch_join(
       enqueue_list,
       batch_size=batch_size,
       capacity=queue_capacity,
@@ -231,4 +271,5 @@ def batch_with_dynamic_pad(images_and_captions,
     #do some simple checking to see if the indicator function looks right
     tf.summary.scalar("caption_length/indicator_max", tf.reduce_max(indicator))
 
-  return images, input_seqs, target_seqs, mask
+  #return images, input_seqs, target_seqs, mask
+  return outputs 
