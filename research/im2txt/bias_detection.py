@@ -134,7 +134,7 @@ def create_dict_from_list(samples):
     """
     :input: list structured as follows
         [{'annotation': [1, 0, ...], 
-          'img': 'COCO_ ...'}]
+          'img': 'COCO_ ...'}]  //note from lisa: gt from reducing bias paper
     :output: dictionary structured as follows
         {'COCO_ ...': [1, 0, ...]}
     """
