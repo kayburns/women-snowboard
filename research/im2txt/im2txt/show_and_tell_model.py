@@ -213,7 +213,7 @@ class ShowAndTellModel(object):
       images_and_captions = []
       for thread_id in range(self.config.num_preprocess_threads):
         serialized_sequence_example = input_queue.dequeue()
-        if flags['blocked_image']:
+        if self.flags['blocked_image']:
             encoded_image, caption, encoded_block_image = input_ops.parse_sequence_example_blocked_iamge(
                 serialized_sequence_example,
                 image_feature=self.config.image_feature_name,
@@ -225,7 +225,7 @@ class ShowAndTellModel(object):
                 image_feature=self.config.image_feature_name,
                 caption_feature=self.config.caption_feature_name)
         image = self.process_image(encoded_image, thread_id=thread_id)
-        if flags['blocked_image']:
+        if self.flags['blocked_image']:
             encoded_image = self.process_image(encoded_image, thread_id=thread_id)
             images_and_captions.append([image, encoded_image, caption])
         else:

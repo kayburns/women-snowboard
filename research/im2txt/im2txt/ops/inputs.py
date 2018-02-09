@@ -30,16 +30,6 @@ if vocab_file != 'im2txt/data/word_counts.txt':
     pdb.set_trace()
 loss_weight_words = ['man', 'woman']
 
-def expand_list(l):
-    new_l = []
-    for item in l:
-        if isinstance(item, list):
-            for i in item:
-                l.append(i)
-        else:
-            l.append(l)
-    return l
-
 def parse_sequence_example(serialized, image_feature, caption_feature):
   """Parses a tensorflow.SequenceExample into an image and caption.
 
@@ -231,7 +221,6 @@ def batch_with_dynamic_pad(images_and_captions,
 
   enqueue_list = []
   for image, caption in images_and_captions:
-    num_image_sets = len(image)
     caption_length = tf.shape(caption)[0]
     input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0)
 
@@ -252,8 +241,12 @@ def batch_with_dynamic_pad(images_and_captions,
         #add one to all values; now indicator should have 1's and values = loss_weight_value
         indicator = tf.add(loss_weight_sum, indicator)       
  
-    enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
-    
+    #enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
+    if isinstance(image, list):
+        enqueue_list.append([image[0], image[1], input_seq, target_seq, indicator])
+    else:   
+        enqueue_list.append([image, input_seq, target_seq, indicator])
+ 
   #images, input_seqs, target_seqs, mask = tf.train.batch_join(
   outputs = tf.train.batch_join(
       enqueue_list,
@@ -263,7 +256,7 @@ def batch_with_dynamic_pad(images_and_captions,
       name="batch_and_pad")
 
   if add_summaries:
-    lengths = tf.add(tf.reduce_sum(mask, 1), 1)
+    lengths = tf.add(tf.reduce_sum(outputs[-1], 1), 1)
     tf.summary.scalar("caption_length/batch_min", tf.reduce_min(lengths))
     tf.summary.scalar("caption_length/batch_max", tf.reduce_max(lengths))
     tf.summary.scalar("caption_length/batch_mean", tf.reduce_mean(lengths))

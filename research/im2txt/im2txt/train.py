@@ -63,13 +63,13 @@ def main(unused_argv):
     tf.logging.info("Creating training directory: %s", train_dir)
     tf.gfile.MakeDirs(train_dir)
 
-  # Build the TensorFlow graph.
+  #go from flags to dict
   g = tf.Graph()
   with g.as_default():
     # Build the model.
     model = show_and_tell_model.ShowAndTellModel(
         model_config, mode="train", train_inception=FLAGS.train_inception,
-        flags=FLAGS) #let's just pass in all the flags bc this is going to get annoying
+        flags=FLAGS.__flags) #let's just pass in all the flags bc this is going to get annoying
     model.build()
 
     # Set up the learning rate.
