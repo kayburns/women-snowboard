@@ -22,6 +22,7 @@ import math
 import os
 import glob
 import sys
+import json
 
 import tensorflow as tf
 
@@ -83,8 +84,10 @@ def main(_):
       sentence += '.'
       caption_dict = {'caption': sentence, 'image_id': image_id }
       caption_dicts.append(caption_dict)
+    import pdb; pdb.set_trace()
+   
     with open(dump_file, 'w') as outfile:
-      json.dump(captions, outfile)
+      json.dump(caption_dicts, outfile)
 #      print("Captions for image %s:" % os.path.basename(filename))
 #      for i, caption in enumerate(captions):
 #        # Ignore begin and end words.
