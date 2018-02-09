@@ -42,7 +42,7 @@ class ShowAndTellModel(object):
   Oriol Vinyals, Alexander Toshev, Samy Bengio, Dumitru Erhan
   """
 
-  def __init__(self, config, mode, train_inception=False, flags=None):
+  def __init__(self, config, mode, train_inception=False, flags={}):
     """Basic setup.
 
     Args:
@@ -55,7 +55,11 @@ class ShowAndTellModel(object):
     self.mode = mode
     self.train_inception = train_inception
     self.flags = flags
-  
+ 
+    #set up default flags
+    if 'loss_weight_value' not in self.flags.keys(): self.flags['loss_weight_value'] = None
+    if 'blocked_image' not in self.flags.keys(): self.flags['blocked_image'] = False 
+ 
     # Reader for the input data.
     self.reader = tf.TFRecordReader()
 
@@ -203,31 +207,46 @@ class ShowAndTellModel(object):
       for thread_id in range(self.config.num_preprocess_threads):
         serialized_sequence_example = input_queue.dequeue()
       assert self.config.num_preprocess_threads % 2 == 0
+
+      #Code to read in images: this is where changes for blocked images are done
+
       images_and_captions = []
       for thread_id in range(self.config.num_preprocess_threads):
         serialized_sequence_example = input_queue.dequeue()
-        encoded_image, caption = input_ops.parse_sequence_example(
-            serialized_sequence_example,
-            image_feature=self.config.image_feature_name,
-            caption_feature=self.config.caption_feature_name)
+        if flags['blocked_image']:
+            encoded_image, caption, encoded_block_image = input_ops.parse_sequence_example_blocked_iamge(
+                serialized_sequence_example,
+                image_feature=self.config.image_feature_name,
+                caption_feature=self.config.caption_feature_name)
+            
+        else:
+            encoded_image, caption = input_ops.parse_sequence_example(
+                serialized_sequence_example,
+                image_feature=self.config.image_feature_name,
+                caption_feature=self.config.caption_feature_name)
         image = self.process_image(encoded_image, thread_id=thread_id)
-        images_and_captions.append([image, caption])
+        if flags['blocked_image']:
+            encoded_image = self.process_image(encoded_image, thread_id=thread_id)
+            images_and_captions.append([image, encoded_image, caption])
+        else:
+            images_and_captions.append([image, caption])
       
       # Batch inputs.
       queue_capacity = (2 * self.config.num_preprocess_threads *
                         self.config.batch_size)
-      try:
-          images, input_seqs, target_seqs, input_mask = (
-              input_ops.batch_with_dynamic_pad(images_and_captions,
-                                               batch_size=self.config.batch_size,
-                                               queue_capacity=queue_capacity,
-                                               loss_weight_value=self.flags.loss_weight_value))
-      except:
-          images, input_seqs, target_seqs, input_mask = (
-              input_ops.batch_with_dynamic_pad(images_and_captions,
-                                               batch_size=self.config.batch_size,
-                                               queue_capacity=queue_capacity,
-                                               loss_weight_value=None))
+
+      #images, input_seqs, target_seqs, input_mask = (
+      outputs = (
+          input_ops.batch_with_dynamic_pad(images_and_captions,
+                                           batch_size=self.config.batch_size,
+                                           queue_capacity=queue_capacity,
+                                           loss_weight_value=self.flags['loss_weight_value']))
+      if self.flags['blocked_image']:
+          images, encoded_images, input_seqs, target_seqs, input_mask = outputs
+          self.encoded_images = images
+      else:
+          images, input_seqs, target_seqs, input_mask = outputs
+
       self.target_seqs = target_seqs
 
     self.images = images
@@ -388,7 +407,10 @@ class ShowAndTellModel(object):
       batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
                           tf.reduce_sum(weights),
                           name="batch_loss")
+
+      #I think we need to do add_loss for any losses we add 
       tf.losses.add_loss(batch_loss)
+
       total_loss = tf.losses.get_total_loss()
 
       # Add summaries.
