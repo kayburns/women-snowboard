@@ -44,6 +44,7 @@ tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters
 
 #to control loss function
 tf.flags.DEFINE_integer("loss_weight_value", None, "To increase loss weight on man/woman words.")   
+tf.flags.DEFINE_boolean("blocked_image", False, "If blocked images should be included")   
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

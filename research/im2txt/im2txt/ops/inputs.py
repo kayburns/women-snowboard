@@ -57,7 +57,7 @@ def parse_sequence_example(serialized, image_feature, caption_feature):
   caption = sequence[caption_feature]
   return encoded_image, caption
 
-def parse_sequence_example_blocked_images(serialized, image_feature, caption_feature):
+def parse_sequence_example_blocked_image(serialized, image_feature, caption_feature):
   """Parses a tensorflow.SequenceExample into an image and caption.
 
   Args:
