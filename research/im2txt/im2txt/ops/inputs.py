@@ -24,6 +24,10 @@ from im2txt.inference_utils import vocabulary
 
 vocab_file = 'im2txt/data/word_counts.txt'
 #vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
+import pdb
+if vocab_file != 'im2txt/data/word_counts.txt':
+    print("Wrong vocab file")
+    pdb.set_trace()
 loss_weight_words = ['man', 'woman']
 
 def parse_sequence_example(serialized, image_feature, caption_feature):
@@ -211,8 +215,6 @@ def batch_with_dynamic_pad(images_and_captions,
  
     enqueue_list.append([image, input_seq, target_seq, indicator])
     
-    
-
   images, input_seqs, target_seqs, mask = tf.train.batch_join(
       enqueue_list,
       batch_size=batch_size,

@@ -21,6 +21,7 @@ from __future__ import print_function
 import math
 import os
 import glob
+import sys
 
 import tensorflow as tf
 
@@ -35,6 +36,7 @@ tf.flags.DEFINE_string("checkpoint_path", "",
                        "Model checkpoint file or directory containing a "
                        "model checkpoint file.")
 tf.flags.DEFINE_string("vocab_file", "", "Text file containing the vocabulary.")
+tf.flags.DEFINE_string("dump_file", "", "Text file containing the vocabulary.")
 tf.flags.DEFINE_string("input_files", "",
                        "File pattern or comma-separated list of file patterns "
                        "of image files.")
@@ -67,16 +69,28 @@ def main(_):
     # beam search parameters. See caption_generator.py for a description of the
     # available beam search parameters.
     generator = caption_generator.CaptionGenerator(model, vocab)
-    for filename in filenames:
+    caption_dicts = [] 
+    for i, filename in enumerate(filenames):
+      sys.stdout.write('\r%d/%d' %(i, len(filenames)))
       with tf.gfile.GFile(filename, "r") as f:
         image = f.read()
       captions = generator.beam_search(sess, image)
-      print("Captions for image %s:" % os.path.basename(filename))
-      for i, caption in enumerate(captions):
-        # Ignore begin and end words.
-        sentence = [vocab.id_to_word(w) for w in caption.sentence[1:-1]]
-        sentence = " ".join(sentence)
-        print("  %d) %s (p=%f)" % (i, sentence, math.exp(caption.logprob)))
+      image_id = int(filename.split('_')[-1].split('.')[0])
+      sentence = [vocab.id_to_word(w) for w in captions[0].sentence[1:-1]]
+      if sentence[-1] == '.':
+        sentence = sentence[:-1]
+      sentence = " ".join(sentence)
+      sentence += '.'
+      caption_dict = {'caption': sentence, 'image_id': image_id }
+      caption_dicts.append(caption_dict)
+    with open(dump_file, 'w') as outfile:
+      json.dump(captions, outfile)
+#      print("Captions for image %s:" % os.path.basename(filename))
+#      for i, caption in enumerate(captions):
+#        # Ignore begin and end words.
+#        sentence = [vocab.id_to_word(w) for w in caption.sentence[1:-1]]
+#        sentence = " ".join(sentence)
+#        print("  %d) %s (p=%f)" % (i, sentence, math.exp(caption.logprob)))
 
 
 if __name__ == "__main__":

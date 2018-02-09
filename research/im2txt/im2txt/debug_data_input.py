@@ -11,7 +11,7 @@ tf.flags.DEFINE_string("input_file_pattern", "",
 assert FLAGS.input_file_pattern, "--input_file_pattern is required"
 
 vocab_file = 'im2txt/data/word_counts.txt'
-#vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
+vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
 vocab = vocabulary.Vocabulary(vocab_file)
 
 sess = tf.InteractiveSession()
