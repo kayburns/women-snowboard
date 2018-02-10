@@ -29,6 +29,7 @@ if vocab_file != 'im2txt/data/word_counts.txt':
     print("Wrong vocab file")
     pdb.set_trace()
 loss_weight_words = ['man', 'woman']
+max_sentence_length_int = 50
 
 def parse_sequence_example(serialized, image_feature, caption_feature):
   """Parses a tensorflow.SequenceExample into an image and caption.
@@ -213,6 +214,7 @@ def batch_with_dynamic_pad(images_and_captions,
     target_seqs: An int32 Tensor of shape [batch_size, padded_length].
     mask: An int32 0/1 Tensor of shape [batch_size, padded_length].
   """
+  max_sentence_length = tf.constant(max_sentence_length_int)
 
   if loss_weight_value:
       vocab = vocabulary.Vocabulary(vocab_file) 
@@ -223,6 +225,9 @@ def batch_with_dynamic_pad(images_and_captions,
     caption_length = tf.shape(caption)[0]
     input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0)
 
+
+#    if tf.less_equal(caption_length, max_sentence_length): #pad sentences to be the same length
+#       padded_caption = tf.pad(caption, tf.subtract(max_length, captoin_length)) 
     input_seq = tf.slice(caption, [0], input_length)
     target_seq = tf.slice(caption, [1], input_length)
     indicator = tf.ones(input_length, dtype=tf.int32)

@@ -246,6 +246,7 @@ class ShowAndTellModel(object):
                                            batch_size=self.config.batch_size,
                                            queue_capacity=queue_capacity,
                                            loss_weight_value=self.flags['loss_weight_value']))
+
       if self.flags['blocked_image']:
           images, encoded_images, input_seqs, target_seqs, input_mask = outputs
           self.images = tf.concat([images, encoded_images], 0) #big batch of images 
@@ -380,6 +381,7 @@ class ShowAndTellModel(object):
 
       else:
         # Run the batch of sequence embeddings through the LSTM.
+
         sequence_length = tf.reduce_sum(self.input_mask, 1)
         lstm_outputs, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
                                             inputs=self.seq_embeddings,
@@ -387,11 +389,11 @@ class ShowAndTellModel(object):
                                             initial_state=initial_state,
                                             dtype=tf.float32,
                                             scope=lstm_scope)
-
     # Stack batches vertically.
-    print("lstm_outputs before reshape: ", lstm_outputs)
-    lstm_outputs = tf.reshape(lstm_outputs, [-1, lstm_cell.output_size])
-    print("lstm_outputs: ", lstm_outputs)
+    #Wait to do this later; screws up dimensions
+#    print("lstm_outputs before reshape: ", lstm_outputs)
+#    lstm_outputs = tf.reshape(lstm_outputs, [-1, lstm_cell.output_size])
+#    print("lstm_outputs: ", lstm_outputs)
 
     with tf.variable_scope("logits") as logits_scope:
       logits = tf.contrib.layers.fully_connected(
@@ -413,42 +415,37 @@ class ShowAndTellModel(object):
       self.target_cross_entropy_losses = loss
       # self.target_cross_entropy_losses = tf.reshape(loss, [self.num_patches, tf.shape(loss)[0]/self.num_patches]) # Used to generate saliency
     else:
-      import pdb; pdb.set_trace()
+      if self.flags['blocked_image']:
+         # we want to split everything back up!
+         logits, blocked_logits = tf.split(logits, 2, axis=0)
+         self.input_mask, blocked_weights = tf.split(self.input_mask, 2, axis=0) #probably do not need to replicate the input mask either; should be the same for both image types
+         self.target_seqs, blocked_targets = tf.split(self.target_seqs, 2, axis=0) #probably don't need to replicate targets
       targets = tf.reshape(self.target_seqs, [-1])
       weights = tf.to_float(tf.reshape(self.input_mask, [-1]))
-
-         #split tensors in half
-         #I think this will still work, but I am not 100% sure
+      logits = tf.reshape(logits, [-1, 12000])
 
       # Compute losses.
       losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets,
                                                               logits=logits)
       if self.flags['blocked_image']:
-         losses, blocked_losses = tf.split(losses, 2, axis=0)
-         weights, blocked_weights = tf.split(weights, 2, axis=0)
-         softmaxes = tf.nn.softmax(logits, 1)
-         _, softmaxes = tf.split(softmaxes, 2, axis=0)
          #write blocked weight loss
-         # ?x1 and ?x1
-         c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=1)         
-         c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=1)        
+         softmaxes = tf.nn.softmax(blocked_logits, 2)
+         c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+         c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
          diff = tf.abs(tf.subtract(c0, c1))
-         blocked_loss = tf.div(tf.reduce_sum(tf.multiply(diff, blocked_weights)), 
-                                 tf.reduce_sum(blocked_weights),
+         blocked_weights = tf.to_float(blocked_weights)
+         #this value is very low; at least at the start.  Will want to consider a lamda value.
+         blocked_loss = tf.reduce_sum(tf.multiply(diff, blocked_weights), 
                                  name="blocked_loss")
-#         blocked_loss = tf.reduce_sum(diff,
-#                                 name="blocked_loss")
          
-         import pdb; pdb.set_trace()
          tf.losses.add_loss(blocked_loss)
  
 
-#      batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
-#                          tf.reduce_sum(weights),
-#                          name="batch_loss")
+      batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
+                          tf.reduce_sum(weights),
+                          name="batch_loss")
 
-      #I think we need to do add_loss for any losses we add 
-#      tf.losses.add_loss(batch_loss)
+      tf.losses.add_loss(batch_loss)
 
       total_loss = tf.losses.get_total_loss()
 
