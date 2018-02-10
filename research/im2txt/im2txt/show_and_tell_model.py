@@ -227,7 +227,7 @@ class ShowAndTellModel(object):
         image = self.process_image(encoded_image, thread_id=thread_id)
         if self.flags['blocked_image']:
             encoded_image = self.process_image(encoded_image, thread_id=thread_id)
-            images_and_captions.append([image, encoded_image, caption])
+            images_and_captions.append([[image, encoded_image], caption])
         else:
             images_and_captions.append([image, caption])
       
@@ -243,15 +243,23 @@ class ShowAndTellModel(object):
                                            loss_weight_value=self.flags['loss_weight_value']))
       if self.flags['blocked_image']:
           images, encoded_images, input_seqs, target_seqs, input_mask = outputs
-          self.encoded_images = images
+          self.images = tf.concat([images, encoded_images], 0) #big batch of images 
+          self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
       else:
           images, input_seqs, target_seqs, input_mask = outputs
+          self.images = images
 
-      self.target_seqs = target_seqs
+      if self.flags['blocked_image']:
+          self.target_seqs = tf.concat([target_seqs, target_seqs], 0) 
+      else:
+          self.target_seqs = target_seqs
 
-    self.images = images
-    self.input_seqs = input_seqs
-    self.input_mask = input_mask
+    if self.flags['blocked_image']:
+        self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
+        self.input_mask = tf.concat([input_mask, input_mask], 0)
+    else:
+        self.input_seqs = input_seqs
+        self.input_mask = input_mask
 
   def build_image_embeddings(self):
     """Builds the image model subgraph and generates image embeddings.
@@ -388,6 +396,8 @@ class ShowAndTellModel(object):
           weights_initializer=self.initializer,
           scope=logits_scope)
       print("logits: ", logits)
+      
+    #need to split logits
 
     if self.mode == "inference":
       tf.nn.softmax(logits, name="softmax")
@@ -401,9 +411,15 @@ class ShowAndTellModel(object):
       targets = tf.reshape(self.target_seqs, [-1])
       weights = tf.to_float(tf.reshape(self.input_mask, [-1]))
 
+         #split tensors in half
+         #I think this will still work, but I am not 100% sure
+
       # Compute losses.
       losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets,
                                                               logits=logits)
+      if self.flags['blocked_image']:
+         losses, blocked_losses = tf.split(losses, 2, axis=0)
+         weights, blocked_weights = tf.split(weights, 2, axis=0)
       batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
                           tf.reduce_sum(weights),
                           name="batch_loss")

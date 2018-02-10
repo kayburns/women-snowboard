@@ -71,7 +71,6 @@ def parse_sequence_example_blocked_image(serialized, image_feature, caption_feat
     encoded_image: A scalar string Tensor containing a JPEG encoded image.
     caption: A 1-D uint64 Tensor with dynamically specified length.
   """
-  import pdb; pdb.set_trace()
   context, sequence = tf.parse_single_sequence_example(
       serialized,
       context_features={
@@ -83,7 +82,7 @@ def parse_sequence_example_blocked_image(serialized, image_feature, caption_feat
 
   encoded_image = context[image_feature]
   caption = sequence[caption_feature]
-  return encoded_image, caption
+  return encoded_image, caption, encoded_image
 
 
 def prefetch_input_data(reader,
@@ -242,7 +241,7 @@ def batch_with_dynamic_pad(images_and_captions,
         indicator = tf.add(loss_weight_sum, indicator)       
  
     #enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
-    if isinstance(image, list):
+    if isinstance(image, list): #kind of hacky; what if we have more than one image type?
         enqueue_list.append([image[0], image[1], input_seq, target_seq, indicator])
     else:   
         enqueue_list.append([image, input_seq, target_seq, indicator])
