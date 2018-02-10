@@ -427,6 +427,7 @@ class ShowAndTellModel(object):
          weights, blocked_weights = tf.split(weights, 2, axis=0)
          softmaxes = tf.nn.softmax(logits, 1)
          _, softmaxes = tf.split(softmaxes, 2, axis=0)
+         #write blocked weight loss
          # ?x1 and ?x1
          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=1)         
          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=1)        
@@ -437,9 +438,6 @@ class ShowAndTellModel(object):
          
          tf.losses.add_loss(blocked_loss)
  
-         import pdb; pdb.set_trace()
-         
-         #write blocked weight loss
 
       batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
                           tf.reduce_sum(weights),
@@ -453,7 +451,7 @@ class ShowAndTellModel(object):
       # Add summaries.
       tf.summary.scalar("losses/batch_loss", batch_loss)
       if self.flags['blocked_image']:
-          tf.summary.scalar("losses/blocked_loss", total_loss) 
+          tf.summary.scalar("losses/blocked_loss", blocked_loss) 
       tf.summary.scalar("losses/total_loss", total_loss)
       for var in tf.trainable_variables():
         tf.summary.histogram("parameters/" + var.op.name, var)
