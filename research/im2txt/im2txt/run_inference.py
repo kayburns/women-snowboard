@@ -86,7 +86,7 @@ def main(_):
       caption_dicts.append(caption_dict)
     import pdb; pdb.set_trace()
    
-    with open(dump_file, 'w') as outfile:
+    with open(FLAGS.dump_file, 'w') as outfile:
       json.dump(caption_dicts, outfile)
 #      print("Captions for image %s:" % os.path.basename(filename))
 #      for i, caption in enumerate(captions):

@@ -75,16 +75,16 @@ def parse_sequence_example_blocked_image(serialized, image_feature, caption_feat
   context, sequence = tf.parse_single_sequence_example(
       serialized,
       context_features={
-          image_feature: tf.FixedLenFeature([], dtype=tf.string)
+          image_feature: tf.FixedLenFeature([], dtype=tf.string),
+          'image/blocked_data': tf.FixedLenFeature([], dtype=tf.string)
       },
       sequence_features={
           caption_feature: tf.FixedLenSequenceFeature([], dtype=tf.int64),
       })
-
   encoded_image = context[image_feature]
   caption = sequence[caption_feature]
-  return encoded_image, caption, encoded_image
-
+  blocked_encoded_image = context['image/blocked_data']
+  return encoded_image, caption, blocked_encoded_image
 
 def prefetch_input_data(reader,
                         file_pattern,

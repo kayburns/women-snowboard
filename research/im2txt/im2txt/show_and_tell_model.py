@@ -237,6 +237,7 @@ class ShowAndTellModel(object):
             images_and_captions.append([image, caption])
       
       # Batch inputs.
+
       queue_capacity = (2 * self.config.num_preprocess_threads *
                         self.config.batch_size)
 
