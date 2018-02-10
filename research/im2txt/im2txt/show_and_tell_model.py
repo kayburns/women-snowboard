@@ -413,6 +413,7 @@ class ShowAndTellModel(object):
       self.target_cross_entropy_losses = loss
       # self.target_cross_entropy_losses = tf.reshape(loss, [self.num_patches, tf.shape(loss)[0]/self.num_patches]) # Used to generate saliency
     else:
+      import pdb; pdb.set_trace()
       targets = tf.reshape(self.target_seqs, [-1])
       weights = tf.to_float(tf.reshape(self.input_mask, [-1]))
 
@@ -432,24 +433,27 @@ class ShowAndTellModel(object):
          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=1)         
          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=1)        
          diff = tf.abs(tf.subtract(c0, c1))
-         blocked_loss = tf.div(tf.reduce_sum(tf.multiply(diff, weights)), 
+         blocked_loss = tf.div(tf.reduce_sum(tf.multiply(diff, blocked_weights)), 
                                  tf.reduce_sum(blocked_weights),
                                  name="blocked_loss")
+#         blocked_loss = tf.reduce_sum(diff,
+#                                 name="blocked_loss")
          
+         import pdb; pdb.set_trace()
          tf.losses.add_loss(blocked_loss)
  
 
-      batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
-                          tf.reduce_sum(weights),
-                          name="batch_loss")
+#      batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
+#                          tf.reduce_sum(weights),
+#                          name="batch_loss")
 
       #I think we need to do add_loss for any losses we add 
-      tf.losses.add_loss(batch_loss)
+#      tf.losses.add_loss(batch_loss)
 
       total_loss = tf.losses.get_total_loss()
 
       # Add summaries.
-      tf.summary.scalar("losses/batch_loss", batch_loss)
+#      tf.summary.scalar("losses/batch_loss", batch_loss)
       if self.flags['blocked_image']:
           tf.summary.scalar("losses/blocked_loss", blocked_loss) 
       tf.summary.scalar("losses/total_loss", total_loss)
