@@ -31,6 +31,11 @@ from im2txt.ops import image_processing
 from im2txt.ops import inputs as input_ops
 
 from inference_utils import vocabulary
+vocab_file = 'im2txt/data/word_counts.txt'
+vocab = vocabulary.Vocabulary(vocab_file) 
+confusion_words = ['man', 'woman']
+confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
+assert len(confusion_word_idx) == 2  
 
 from PIL import Image
 import numpy as np
@@ -420,6 +425,22 @@ class ShowAndTellModel(object):
       if self.flags['blocked_image']:
          losses, blocked_losses = tf.split(losses, 2, axis=0)
          weights, blocked_weights = tf.split(weights, 2, axis=0)
+         softmaxes = tf.nn.softmax(logits, 1)
+         _, softmaxes = tf.split(softmaxes, 2, axis=0)
+         # ?x1 and ?x1
+         c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=1)         
+         c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=1)        
+         diff = tf.abs(tf.subtract(c0, c1))
+         blocked_loss = tf.div(tf.reduce_sum(tf.multiply(diff, weights)), 
+                                 tf.reduce_sum(blocked_weights),
+                                 name="blocked_loss")
+         
+         tf.losses.add_loss(blocked_loss)
+ 
+         import pdb; pdb.set_trace()
+         
+         #write blocked weight loss
+
       batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
                           tf.reduce_sum(weights),
                           name="batch_loss")
@@ -431,6 +452,8 @@ class ShowAndTellModel(object):
 
       # Add summaries.
       tf.summary.scalar("losses/batch_loss", batch_loss)
+      if self.flags['blocked_image']:
+          tf.summary.scalar("losses/blocked_loss", total_loss) 
       tf.summary.scalar("losses/total_loss", total_loss)
       for var in tf.trainable_variables():
         tf.summary.histogram("parameters/" + var.op.name, var)
