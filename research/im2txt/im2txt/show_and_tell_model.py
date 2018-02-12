@@ -216,7 +216,7 @@ class ShowAndTellModel(object):
           input_queues.append(input_queue2)
 
       self.num_parallel_batches = len(input_queues)
-      self.num_parallel_batches = 2 #for debugging 
+      #self.num_parallel_batches = 2 #for debugging 
 
       # Image processing and random distortion. Split across multiple threads
       # with each thread applying a slightly different distortion.
@@ -261,14 +261,14 @@ class ShowAndTellModel(object):
           all_target_seqs.append(outputs[2])
           all_input_masks.append(outputs[3]) 
 
-      self.target_seqs = [all_target_seqs[0], all_target_seqs[0]]
-      #self.target_seqs = all_target_seqs 
-      self.input_mask = [all_input_masks[0], all_input_masks[0]]
-      #self.input_mask = all_input_masks 
-    self.images = tf.concat([all_images[0], all_images[0]], 0)
-    #self.input_seqs = all_input_seqs 
-    self.input_seqs = [all_input_seqs[0], all_input_seqs[0]] 
-
+      #self.target_seqs = [all_target_seqs[0], all_target_seqs[0]] #for debugging
+      self.target_seqs = all_target_seqs 
+      #self.input_mask = [all_input_masks[0], all_input_masks[0]]
+      self.input_mask = all_input_masks 
+    #self.images = tf.concat([all_images[0], all_images[0]], 0)
+    self.images = tf.concat(all_images, 0)
+    #self.input_seqs = [all_input_seqs[0], all_input_seqs[0]] 
+    self.input_seqs = all_input_seqs 
 
   def build_image_embeddings(self):
     """Builds the image model subgraph and generates image embeddings.
@@ -343,11 +343,11 @@ class ShowAndTellModel(object):
     # new_c * sigmoid(o).
     lstm_cell = tf.contrib.rnn.BasicLSTMCell(
         num_units=self.config.num_lstm_units, state_is_tuple=True)
-#    if self.mode == "train":  #commented out for debug
-#      lstm_cell = tf.contrib.rnn.DropoutWrapper(
-#          lstm_cell,
-#          input_keep_prob=self.config.lstm_dropout_keep_prob,
-#          output_keep_prob=self.config.lstm_dropout_keep_prob)
+    if self.mode == "train":  #commented out for debug
+      lstm_cell = tf.contrib.rnn.DropoutWrapper(
+          lstm_cell,
+          input_keep_prob=self.config.lstm_dropout_keep_prob,
+          output_keep_prob=self.config.lstm_dropout_keep_prob)
 
     with tf.variable_scope("lstm", initializer=self.initializer) as lstm_scope:
       # Feed the image embeddings to set the initial LSTM state.
@@ -409,7 +409,6 @@ class ShowAndTellModel(object):
       logits = []
       tf.get_variable_scope().reuse_variables()
       for lstm_output in lstm_outputs:
-          import pdb; pdb.set_trace()
           logit = tf.contrib.layers.fully_connected(
               inputs=lstm_outputs[0],
               num_outputs=self.config.vocab_size,
@@ -419,10 +418,9 @@ class ShowAndTellModel(object):
               scope=logits_scope)
           logits.append(logit)
       print("logits: ", logits[0])
-    debug_loss = tf.reduce_sum(tf.subtract(logits[0], logits[1]), name="debug_loss")
+    #debug_loss = tf.reduce_sum(tf.subtract(logits[0], logits[1]), name="debug_loss")
+    #tf.losses.add_loss(debug_loss)
       
-    #need to split logits
-
     if self.mode == "inference":
       tf.nn.softmax(logits, name="softmax")
     elif self.mode == "saliency":
@@ -432,38 +430,33 @@ class ShowAndTellModel(object):
       self.target_cross_entropy_losses = loss
       # self.target_cross_entropy_losses = tf.reshape(loss, [self.num_patches, tf.shape(loss)[0]/self.num_patches]) # Used to generate saliency
     else:
-      if self.flags['blocked_image']:
-         # we want to split everything back up!
-         logits, blocked_logits = tf.split(logits, 2, axis=0)
-         self.input_mask, blocked_weights = tf.split(self.input_mask, 2, axis=0) #probably do not need to replicate the input mask either; should be the same for both image types
-         self.target_seqs, blocked_targets = tf.split(self.target_seqs, 2, axis=0) #probably don't need to replicate targets
-      targets = tf.reshape(self.target_seqs, [-1])
-      weights = tf.to_float(tf.reshape(self.input_mask, [-1]))
-      logits = tf.reshape(logits, [-1, 12000])
+      targets_reshape = [tf.reshape(target, [-1]) for target in self.target_seqs]
+      weights_reshape = [tf.to_float(tf.reshape(weight, [-1])) for weight in self.input_mask]
+      logits_reshape = [tf.reshape(logit, [-1, 12000]) for logit in logits]
 
       # Compute losses.
-      losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets,
-                                                              logits=logits)
+      losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[0],
+                                                              logits=logits_reshape[0])
+      batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[0])),
+                          tf.reduce_sum(weights_reshape[0]),
+                          name="batch_loss")
+      tf.losses.add_loss(batch_loss)
+
       if self.flags['blocked_image']:
          #write blocked weight loss
-         softmaxes = tf.nn.softmax(blocked_logits, 2)
+         softmaxes = tf.nn.softmax(logits[1], 2)
          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
          diff = tf.abs(tf.subtract(c0, c1))
-         blocked_weights = tf.to_float(blocked_weights)
+         blocked_weights = tf.to_float(self.input_mask[1])
          #this value is very low; at least at the start.  Will want to consider a lamda value.
          blocked_loss = tf.reduce_sum(tf.multiply(diff, blocked_weights), 
                                  name="blocked_loss")
          
-         #tf.losses.add_loss(blocked_loss)
+         tf.losses.add_loss(blocked_loss)
  
 
-      batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
-                          tf.reduce_sum(weights),
-                          name="batch_loss")
 
-      #tf.losses.add_loss(batch_loss)
-      tf.losses.add_loss(debug_loss)
 
 #      import pdb; pdb.set_trace()
       total_loss = tf.losses.get_total_loss(False)
@@ -480,7 +473,7 @@ class ShowAndTellModel(object):
 
       self.total_loss = total_loss
       self.target_cross_entropy_losses = losses  # Used in evaluation.
-      self.target_cross_entropy_loss_weights = weights  # Used in evaluation.
+      self.target_cross_entropy_loss_weights = weights_reshape[0]  # Used in evaluation.
 
   def setup_inception_initializer(self):
     """Sets up the function to restore inception variables from checkpoint."""
