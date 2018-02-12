@@ -250,11 +250,11 @@ class ShowAndTellModel(object):
 
       if self.flags['blocked_image']:
           images, encoded_images, input_seqs, target_seqs, input_mask = outputs
-          self.images = tf.concat([images, encoded_images], 0) #big batch of images 
           self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
+          self.input_mask = tf.concat([input_mask, input_mask], 0)
       else:
           images, input_seqs, target_seqs, input_mask = outputs
-          self.images = images
+          self.input_mask = input_mask
 
       if self.flags['blocked_image']:
           self.target_seqs = tf.concat([target_seqs, target_seqs], 0) 
@@ -263,10 +263,10 @@ class ShowAndTellModel(object):
 
     if self.flags['blocked_image']:
         self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
-        self.input_mask = tf.concat([input_mask, input_mask], 0)
+        self.images = tf.concat([images, encoded_images], 0) #big batch of images 
     else:
         self.input_seqs = input_seqs
-        self.input_mask = input_mask
+        self.images = images
 
   def build_image_embeddings(self):
     """Builds the image model subgraph and generates image embeddings.
@@ -277,6 +277,7 @@ class ShowAndTellModel(object):
     Outputs:
       self.image_embeddings
     """
+    import pdb; pdb.set_trace()
     inception_output = image_embedding.inception_v3(
         self.images,
         trainable=self.train_inception,

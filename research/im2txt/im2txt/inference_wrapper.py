@@ -33,6 +33,7 @@ class InferenceWrapper(inference_wrapper_base.InferenceWrapperBase):
 
   def build_model(self, model_config):
     model = show_and_tell_model.ShowAndTellModel(model_config, mode="inference")
+    import pdb; pdb.set_trace()
     model.build()
     return model
 
