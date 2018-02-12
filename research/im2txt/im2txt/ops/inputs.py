@@ -161,7 +161,8 @@ def prefetch_input_data(reader,
 def batch_with_dynamic_pad(images_and_captions,
                            batch_size,
                            queue_capacity,
-                           add_summaries=True, 
+                           add_summaries=True,
+                           num_queues = 1, 
                            loss_weight_value=None):
   """Batches input images and captions.
 
@@ -221,39 +222,40 @@ def batch_with_dynamic_pad(images_and_captions,
       loss_weight_ids = [vocab.word_to_id(word) for word in loss_weight_words]
 
   enqueue_list = []
-  for image, caption in images_and_captions:
-    caption_length = tf.shape(caption)[0]
-    input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0)
+  for i in range(num_queues):
+      all_enqueue_list = []
+      for image, caption in images_and_captions[i]:
+        caption_length = tf.shape(caption)[0]
+        input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0)
+    
+    
+        input_seq = tf.slice(caption, [0], input_length)
+        target_seq = tf.slice(caption, [1], input_length)
+        indicator = tf.ones(input_length, dtype=tf.int32)
 
-
-#    if tf.less_equal(caption_length, max_sentence_length): #pad sentences to be the same length
-#       padded_caption = tf.pad(caption, tf.subtract(max_length, captoin_length)) 
-    input_seq = tf.slice(caption, [0], input_length)
-    target_seq = tf.slice(caption, [1], input_length)
-    indicator = tf.ones(input_length, dtype=tf.int32)
-    if loss_weight_value:
-        #need to find which input values match words
-        loss_weight_bool = []
-        for loss_weight_id in loss_weight_ids:
-            loss_weight_bool.append(tf.cast(
-                                    tf.equal(target_seq, loss_weight_id, name=None),
-                                    dtype=tf.int32))
-        #loss weight should be list of binary tensors; add the tensors to account for each word 
-        loss_weight_sum = tf.add_n(loss_weight_bool)
-        #multiply by loss_weight_value-1; weight loss should now be tensor with 0s and values of loss_weight_value-1
-        loss_weight_sum = tf.scalar_mul(tf.constant(loss_weight_value-1), loss_weight_sum) 
-        #add one to all values; now indicator should have 1's and values = loss_weight_value
-        indicator = tf.add(loss_weight_sum, indicator)       
- 
-    #enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
-    if isinstance(image, list): #kind of hacky; what if we have more than one image type?
-        enqueue_list.append([image[0], image[1], input_seq, target_seq, indicator])
-    else:   
-        enqueue_list.append([image, input_seq, target_seq, indicator])
- 
-  #images, input_seqs, target_seqs, mask = tf.train.batch_join(
+        if loss_weight_value:
+            #need to find which input values match words
+            loss_weight_bool = []
+            for loss_weight_id in loss_weight_ids:
+                loss_weight_bool.append(tf.cast(
+                                        tf.equal(target_seq, loss_weight_id, name=None),
+                                        dtype=tf.int32))
+            #loss weight should be list of binary tensors; add the tensors to account for each word 
+            loss_weight_sum = tf.add_n(loss_weight_bool)
+            #multiply by loss_weight_value-1; weight loss should now be tensor with 0s and values of loss_weight_value-1
+            loss_weight_sum = tf.scalar_mul(tf.constant(loss_weight_value-1), loss_weight_sum) 
+            #add one to all values; now indicator should have 1's and values = loss_weight_value
+            indicator = tf.add(loss_weight_sum, indicator)       
+     
+        #enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
+        all_enqueue_list.append([image, input_seq, target_seq, indicator])
+      enqueue_list.append(all_enqueue_list)
+  enqueue_list_t = []
+  for i in range(num_queues):
+    enqueue_list_t.extend(enqueue_list[i])
+  import pdb; pdb.set_trace()
   outputs = tf.train.batch_join(
-      enqueue_list,
+      enqueue_list_t,
       batch_size=batch_size,
       capacity=queue_capacity,
       dynamic_pad=True,

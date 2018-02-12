@@ -192,6 +192,7 @@ class ShowAndTellModel(object):
         
     else:
       # Prefetch serialized SequenceExample protos.
+      input_queues = []
       input_queue = input_ops.prefetch_input_data(
           self.reader,
           self.config.input_file_pattern,
@@ -200,6 +201,19 @@ class ShowAndTellModel(object):
           values_per_shard=self.config.values_per_input_shard,
           input_queue_capacity_factor=self.config.input_queue_capacity_factor,
           num_reader_threads=self.config.num_input_reader_threads)
+      input_queues.append(input_queue)
+
+      if self.flags['blocked_image']:
+          #will have to write some logit to input two input_file_patterns
+          input_queue2 = input_ops.prefetch_input_data(
+              self.reader,
+              self.config.input_file_pattern,
+              is_training=self.is_training(),
+              batch_size=self.config.batch_size,
+              values_per_shard=self.config.values_per_input_shard,
+              input_queue_capacity_factor=self.config.input_queue_capacity_factor,
+              num_reader_threads=self.config.num_input_reader_threads)
+          input_queues.append(input_queue2)
 
       # Image processing and random distortion. Split across multiple threads
       # with each thread applying a slightly different distortion.
@@ -207,66 +221,85 @@ class ShowAndTellModel(object):
       images_and_captions = []
       for thread_id in range(self.config.num_preprocess_threads):
         serialized_sequence_example = input_queue.dequeue()
-      assert self.config.num_preprocess_threads % 2 == 0
-      images_and_captions = []
-      for thread_id in range(self.config.num_preprocess_threads):
-        serialized_sequence_example = input_queue.dequeue()
-      assert self.config.num_preprocess_threads % 2 == 0
 
       #Code to read in images: this is where changes for blocked images are done
 
-      images_and_captions = []
+      images_and_captions_list = [[] for _ in range(len(input_queues))]
       for thread_id in range(self.config.num_preprocess_threads):
-        serialized_sequence_example = input_queue.dequeue()
-        if self.flags['blocked_image']:
-            encoded_image, caption, encoded_block_image = input_ops.parse_sequence_example_blocked_image(
-                serialized_sequence_example,
-                image_feature=self.config.image_feature_name,
-                caption_feature=self.config.caption_feature_name)
+#        if self.flags['blocked_image']:
+#            encoded_image, caption, encoded_block_image = input_ops.parse_sequence_example_blocked_image(
+#                serialized_sequence_example,
+#                image_feature=self.config.image_feature_name,
+#                caption_feature=self.config.caption_feature_name)
+#        image = self.process_image(encoded_image, thread_id=thread_id)
+#        if self.flags['blocked_image']:
+#            encoded_image = self.process_image(encoded_image, thread_id=thread_id)
+#            images_and_captions.append([[image, encoded_image], caption])
+#        else:
+#            images_and_captions.append([image, caption])
             
-        else:
+        for i, input_queue in enumerate(input_queues): 
+            serialized_sequence_example = input_queue.dequeue()
             encoded_image, caption = input_ops.parse_sequence_example(
                 serialized_sequence_example,
-                image_feature=self.config.image_feature_name,
+                image_feature=self.config.image_feature_name, #TODO change this!
                 caption_feature=self.config.caption_feature_name)
-        image = self.process_image(encoded_image, thread_id=thread_id)
-        if self.flags['blocked_image']:
-            encoded_image = self.process_image(encoded_image, thread_id=thread_id)
-            images_and_captions.append([[image, encoded_image], caption])
-        else:
-            images_and_captions.append([image, caption])
+            image = self.process_image(encoded_image, thread_id=thread_id)
+            images_and_captions_list[i].append([image, caption])
+            
+
       
       # Batch inputs.
 
       queue_capacity = (2 * self.config.num_preprocess_threads *
                         self.config.batch_size)
 
-      #images, input_seqs, target_seqs, input_mask = (
-      outputs = (
-          input_ops.batch_with_dynamic_pad(images_and_captions,
+      num_queues = len(images_and_captions_list)
+      import pdb; pdb.set_trace()
+      outputs = input_ops.batch_with_dynamic_pad(
+                                           images_and_captions_list,
                                            batch_size=self.config.batch_size,
+                                           num_queues=num_queues,
                                            queue_capacity=queue_capacity,
-                                           loss_weight_value=self.flags['loss_weight_value']))
+                                           loss_weight_value=self.flags['loss_weight_value'])
 
-      if self.flags['blocked_image']:
-          images, encoded_images, input_seqs, target_seqs, input_mask = outputs
-          self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
-          self.input_mask = tf.concat([input_mask, input_mask], 0)
-      else:
-          images, input_seqs, target_seqs, input_mask = outputs
-          self.input_mask = input_mask
+      import pdb; pdb.set_trace()
+      images = []
+      input_seqs = []
+      target_seqs = []
+      input_masks = []
+ 
+      for i in range(num_queues):
+          images.append(outputs[i*num_queues]) 
+          input_seqs.append(outputs[i*num_queues+1]) 
+          target_seqs.append(outputs[i*num_queues+2]) 
+          input_masks.append(outputs[i*num_queues+3]) 
 
-      if self.flags['blocked_image']:
-          self.target_seqs = tf.concat([target_seqs, target_seqs], 0) 
-      else:
-          self.target_seqs = target_seqs
+      #self.target_seqs = tf.reshape(tf.stack(all_target_seqs, 0), [len(input_queues)*self.config.batch_size, -1])
+      self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
+      self.input_mask = tf.concat([input_mask, input_mask], 0)
+    self.images = tf.concat(all_images, 0)
+    self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
 
-    if self.flags['blocked_image']:
-        self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
-        self.images = tf.concat([images, encoded_images], 0) #big batch of images 
-    else:
-        self.input_seqs = input_seqs
-        self.images = images
+#      if self.flags['blocked_image']:
+#          images, encoded_images, input_seqs, target_seqs, input_mask = outputs
+#          self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
+#          self.input_mask = tf.concat([input_mask, input_mask], 0)
+#      else:
+#          images, input_seqs, target_seqs, input_mask = outputs
+#          self.input_mask = input_mask
+#
+#      if self.flags['blocked_image']:
+#          self.target_seqs = tf.concat([target_seqs, target_seqs], 0) 
+#      else:
+#          self.target_seqs = target_seqs
+#
+#    if self.flags['blocked_image']:
+#        self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
+#        self.images = tf.concat([images, encoded_images], 0) #big batch of images 
+#    else:
+#        self.input_seqs = input_seqs
+#        self.images = images
 
   def build_image_embeddings(self):
     """Builds the image model subgraph and generates image embeddings.
@@ -277,7 +310,6 @@ class ShowAndTellModel(object):
     Outputs:
       self.image_embeddings
     """
-    import pdb; pdb.set_trace()
     inception_output = image_embedding.inception_v3(
         self.images,
         trainable=self.train_inception,
@@ -391,6 +423,7 @@ class ShowAndTellModel(object):
                                             initial_state=initial_state,
                                             dtype=tf.float32,
                                             scope=lstm_scope)
+
     # Stack batches vertically.
     #Wait to do this later; screws up dimensions
 #    print("lstm_outputs before reshape: ", lstm_outputs)
@@ -448,11 +481,14 @@ class ShowAndTellModel(object):
                           name="batch_loss")
 
       tf.losses.add_loss(batch_loss)
+      tf.losses.add_loss(debug_loss)
 
       total_loss = tf.losses.get_total_loss()
 
       # Add summaries.
 #      tf.summary.scalar("losses/batch_loss", batch_loss)
+
+
       if self.flags['blocked_image']:
           tf.summary.scalar("losses/blocked_loss", blocked_loss) 
       tf.summary.scalar("losses/total_loss", total_loss)
