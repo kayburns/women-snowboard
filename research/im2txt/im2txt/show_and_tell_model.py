@@ -215,6 +215,9 @@ class ShowAndTellModel(object):
               num_reader_threads=self.config.num_input_reader_threads)
           input_queues.append(input_queue2)
 
+      self.num_parallel_batches = len(input_queues)
+      self.num_parallel_batches = 2 #for debugging 
+
       # Image processing and random distortion. Split across multiple threads
       # with each thread applying a slightly different distortion.
       assert self.config.num_preprocess_threads % 2 == 0
@@ -226,18 +229,7 @@ class ShowAndTellModel(object):
 
       images_and_captions_list = [[] for _ in range(len(input_queues))]
       for thread_id in range(self.config.num_preprocess_threads):
-#        if self.flags['blocked_image']:
-#            encoded_image, caption, encoded_block_image = input_ops.parse_sequence_example_blocked_image(
-#                serialized_sequence_example,
-#                image_feature=self.config.image_feature_name,
-#                caption_feature=self.config.caption_feature_name)
-#        image = self.process_image(encoded_image, thread_id=thread_id)
-#        if self.flags['blocked_image']:
-#            encoded_image = self.process_image(encoded_image, thread_id=thread_id)
-#            images_and_captions.append([[image, encoded_image], caption])
-#        else:
-#            images_and_captions.append([image, caption])
-            
+
         for i, input_queue in enumerate(input_queues): 
             serialized_sequence_example = input_queue.dequeue()
             encoded_image, caption = input_ops.parse_sequence_example(
@@ -246,60 +238,37 @@ class ShowAndTellModel(object):
                 caption_feature=self.config.caption_feature_name)
             image = self.process_image(encoded_image, thread_id=thread_id)
             images_and_captions_list[i].append([image, caption])
-            
-
-      
+             
       # Batch inputs.
 
       queue_capacity = (2 * self.config.num_preprocess_threads *
                         self.config.batch_size)
 
       num_queues = len(images_and_captions_list)
-      import pdb; pdb.set_trace()
-      outputs = input_ops.batch_with_dynamic_pad(
-                                           images_and_captions_list,
-                                           batch_size=self.config.batch_size,
-                                           num_queues=num_queues,
-                                           queue_capacity=queue_capacity,
-                                           loss_weight_value=self.flags['loss_weight_value'])
+      all_images = []
+      all_input_seqs = []
+      all_target_seqs = []
+      all_input_masks = []
+      for i in range(len(input_queues)): 
+          outputs = input_ops.batch_with_dynamic_pad(
+                                               images_and_captions_list[i],
+                                               batch_size=self.config.batch_size,
+                                               num_queues=num_queues,
+                                               queue_capacity=queue_capacity,
+                                               loss_weight_value=self.flags['loss_weight_value'])
+          all_images.append(outputs[0])
+          all_input_seqs.append(outputs[1])
+          all_target_seqs.append(outputs[2])
+          all_input_masks.append(outputs[3]) 
 
-      import pdb; pdb.set_trace()
-      images = []
-      input_seqs = []
-      target_seqs = []
-      input_masks = []
- 
-      for i in range(num_queues):
-          images.append(outputs[i*num_queues]) 
-          input_seqs.append(outputs[i*num_queues+1]) 
-          target_seqs.append(outputs[i*num_queues+2]) 
-          input_masks.append(outputs[i*num_queues+3]) 
+      self.target_seqs = [all_target_seqs[0], all_target_seqs[0]]
+      #self.target_seqs = all_target_seqs 
+      self.input_mask = [all_input_masks[0], all_input_masks[0]]
+      #self.input_mask = all_input_masks 
+    self.images = tf.concat([all_images[0], all_images[0]], 0)
+    #self.input_seqs = all_input_seqs 
+    self.input_seqs = [all_input_seqs[0], all_input_seqs[0]] 
 
-      #self.target_seqs = tf.reshape(tf.stack(all_target_seqs, 0), [len(input_queues)*self.config.batch_size, -1])
-      self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
-      self.input_mask = tf.concat([input_mask, input_mask], 0)
-    self.images = tf.concat(all_images, 0)
-    self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
-
-#      if self.flags['blocked_image']:
-#          images, encoded_images, input_seqs, target_seqs, input_mask = outputs
-#          self.target_seqs = tf.concat([target_seqs, target_seqs], 0)
-#          self.input_mask = tf.concat([input_mask, input_mask], 0)
-#      else:
-#          images, input_seqs, target_seqs, input_mask = outputs
-#          self.input_mask = input_mask
-#
-#      if self.flags['blocked_image']:
-#          self.target_seqs = tf.concat([target_seqs, target_seqs], 0) 
-#      else:
-#          self.target_seqs = target_seqs
-#
-#    if self.flags['blocked_image']:
-#        self.input_seqs = tf.concat([input_seqs, input_seqs], 0)
-#        self.images = tf.concat([images, encoded_images], 0) #big batch of images 
-#    else:
-#        self.input_seqs = input_seqs
-#        self.images = images
 
   def build_image_embeddings(self):
     """Builds the image model subgraph and generates image embeddings.
@@ -342,14 +311,17 @@ class ShowAndTellModel(object):
     Outputs:
       self.seq_embeddings
     """
+    seq_embeddings = []
     with tf.variable_scope("seq_embedding"), tf.device("/cpu:0"):
       embedding_map = tf.get_variable(
           name="map",
           shape=[self.config.vocab_size, self.config.embedding_size],
           initializer=self.initializer)
-      seq_embeddings = tf.nn.embedding_lookup(embedding_map, self.input_seqs)
+      tf.get_variable_scope().reuse_variables()  #needed to share paramters
+      for input_seq in self.input_seqs:
+          seq_embeddings.append(tf.nn.embedding_lookup(embedding_map, self.input_seqs[0]))
 
-    print(seq_embeddings)
+    print(seq_embeddings[0])
     self.seq_embeddings = seq_embeddings
 
   def build_model(self):
@@ -371,17 +343,23 @@ class ShowAndTellModel(object):
     # new_c * sigmoid(o).
     lstm_cell = tf.contrib.rnn.BasicLSTMCell(
         num_units=self.config.num_lstm_units, state_is_tuple=True)
-    if self.mode == "train":
-      lstm_cell = tf.contrib.rnn.DropoutWrapper(
-          lstm_cell,
-          input_keep_prob=self.config.lstm_dropout_keep_prob,
-          output_keep_prob=self.config.lstm_dropout_keep_prob)
+#    if self.mode == "train":  #commented out for debug
+#      lstm_cell = tf.contrib.rnn.DropoutWrapper(
+#          lstm_cell,
+#          input_keep_prob=self.config.lstm_dropout_keep_prob,
+#          output_keep_prob=self.config.lstm_dropout_keep_prob)
 
     with tf.variable_scope("lstm", initializer=self.initializer) as lstm_scope:
       # Feed the image embeddings to set the initial LSTM state.
+      self.image_embeddings = tf.split(self.image_embeddings, 
+                                       self.num_parallel_batches, 
+                                       axis=0)
       zero_state = lstm_cell.zero_state(
-          batch_size=self.image_embeddings.get_shape()[0], dtype=tf.float32)
-      _, initial_state = lstm_cell(self.image_embeddings, zero_state)
+          batch_size=self.image_embeddings[0].get_shape()[0], dtype=tf.float32)
+      initial_states = []
+      for image_embedding in self.image_embeddings:
+          _, initial_state = lstm_cell(image_embedding, zero_state)
+          initial_states.append(initial_state)
 
       # Allow the LSTM variables to be reused.
       lstm_scope.reuse_variables()
@@ -407,6 +385,7 @@ class ShowAndTellModel(object):
 
       elif self.mode == "saliency":
         # Run the batch of sequence embeddings through the LSTM.
+        
         lstm_outputs, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
                                             inputs=self.seq_embeddings,
                                             initial_state=initial_state,
@@ -415,20 +394,21 @@ class ShowAndTellModel(object):
 
       else:
         # Run the batch of sequence embeddings through the LSTM.
-
-        sequence_length = tf.reduce_sum(self.input_mask, 1)
-        lstm_outputs, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
-                                            inputs=self.seq_embeddings,
+        sequence_length = tf.reduce_sum(self.input_mask[0], 1)
+        import pdb; pdb.set_trace()
+        lstm_outputs1, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
+                                            inputs=self.seq_embeddings[0],
                                             sequence_length=sequence_length,
-                                            initial_state=initial_state,
+                                            initial_state=initial_states[0],
                                             dtype=tf.float32,
                                             scope=lstm_scope)
-
-    # Stack batches vertically.
-    #Wait to do this later; screws up dimensions
-#    print("lstm_outputs before reshape: ", lstm_outputs)
-#    lstm_outputs = tf.reshape(lstm_outputs, [-1, lstm_cell.output_size])
-#    print("lstm_outputs: ", lstm_outputs)
+        lstm_outputs2, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
+                                            inputs=self.seq_embeddings[0],
+                                            sequence_length=sequence_length,
+                                            initial_state=initial_states[0],
+                                            dtype=tf.float32,
+                                            scope=lstm_scope)
+        lstm_outputs = tf.concat([lstm_outputs1, lstm_outputs2], axis=0)
 
     with tf.variable_scope("logits") as logits_scope:
       logits = tf.contrib.layers.fully_connected(
@@ -473,17 +453,19 @@ class ShowAndTellModel(object):
          blocked_loss = tf.reduce_sum(tf.multiply(diff, blocked_weights), 
                                  name="blocked_loss")
          
-         tf.losses.add_loss(blocked_loss)
+         #tf.losses.add_loss(blocked_loss)
  
 
       batch_loss = tf.div(tf.reduce_sum(tf.multiply(losses, weights)),
                           tf.reduce_sum(weights),
                           name="batch_loss")
 
-      tf.losses.add_loss(batch_loss)
+      debug_loss = tf.reduce_sum(tf.subtract(lstm_outputs1, lstm_outputs2), name="debug_loss")
+      #tf.losses.add_loss(batch_loss)
       tf.losses.add_loss(debug_loss)
 
-      total_loss = tf.losses.get_total_loss()
+#      import pdb; pdb.set_trace()
+      total_loss = tf.losses.get_total_loss(False)
 
       # Add summaries.
 #      tf.summary.scalar("losses/batch_loss", batch_loss)
