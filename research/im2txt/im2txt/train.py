@@ -29,6 +29,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.flags.DEFINE_string("input_file_pattern", "",
                        "File pattern of sharded TFRecord input files.")
+tf.flags.DEFINE_string("blocked_input_file_pattern", "",
+                       "File pattern of sharded TFRecord input files.")
 tf.flags.DEFINE_string("inception_checkpoint_file", "",
                        "Path to a pretrained inception_v3 model.")
 tf.flags.DEFINE_string("train_dir", "",
@@ -45,6 +47,7 @@ tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters
 #to control loss function
 tf.flags.DEFINE_integer("loss_weight_value", None, "To increase loss weight on man/woman words.")   
 tf.flags.DEFINE_boolean("blocked_image", False, "If blocked images should be included")   
+tf.flags.DEFINE_integer("blocked_loss_weight", 100, "How much to weight blocked loss.")
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -55,6 +58,11 @@ def main(unused_argv):
 
   model_config = configuration.ModelConfig()
   model_config.input_file_pattern = FLAGS.input_file_pattern
+  model_config.image_keys = [model_config.image_feature_name]
+  if FLAGS.blocked_image:
+      assert FLAGS.blocked_input_file_pattern, "--blocked_input_file_pattern is required if you would like to train with blocked images"
+      model_config.blocked_input_file_pattern = FLAGS.blocked_input_file_pattern
+      model_config.image_keys.append(model_config.blocked_image_feature_name)
   model_config.inception_checkpoint_file = FLAGS.inception_checkpoint_file
   training_config = configuration.TrainingConfig()
 

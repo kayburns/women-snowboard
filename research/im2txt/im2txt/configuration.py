@@ -42,6 +42,7 @@ class ModelConfig(object):
 
     # Name of the SequenceExample context feature containing image data.
     self.image_feature_name = "image/data"
+    self.blocked_image_feature_name = "image/blocked_data"
     # Name of the SequenceExample feature list containing integer captions.
     self.caption_feature_name = "image/caption_ids"
 

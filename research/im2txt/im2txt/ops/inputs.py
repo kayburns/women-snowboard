@@ -58,34 +58,6 @@ def parse_sequence_example(serialized, image_feature, caption_feature):
   caption = sequence[caption_feature]
   return encoded_image, caption
 
-def parse_sequence_example_blocked_image(serialized, image_feature, caption_feature):
-  """Parses a tensorflow.SequenceExample into an image and caption.
-
-  Args:
-    serialized: A scalar string Tensor; a single serialized SequenceExample.
-    image_feature: Name of SequenceExample context feature containing image
-      data.
-    caption_feature: Name of SequenceExample feature list containing integer
-      captions.
-
-  Returns:
-    encoded_image: A scalar string Tensor containing a JPEG encoded image.
-    caption: A 1-D uint64 Tensor with dynamically specified length.
-  """
-  context, sequence = tf.parse_single_sequence_example(
-      serialized,
-      context_features={
-          image_feature: tf.FixedLenFeature([], dtype=tf.string),
-          'image/blocked_data': tf.FixedLenFeature([], dtype=tf.string)
-      },
-      sequence_features={
-          caption_feature: tf.FixedLenSequenceFeature([], dtype=tf.int64),
-      })
-  encoded_image = context[image_feature]
-  caption = sequence[caption_feature]
-  blocked_encoded_image = context['image/blocked_data']
-  return encoded_image, caption, blocked_encoded_image
-
 def prefetch_input_data(reader,
                         file_pattern,
                         is_training,

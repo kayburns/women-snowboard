@@ -207,7 +207,7 @@ class ShowAndTellModel(object):
           #will have to write some logit to input two input_file_patterns
           input_queue2 = input_ops.prefetch_input_data(
               self.reader,
-              self.config.input_file_pattern,
+              self.config.blocked_input_file_pattern,
               is_training=self.is_training(),
               batch_size=self.config.batch_size,
               values_per_shard=self.config.values_per_input_shard,
@@ -232,9 +232,13 @@ class ShowAndTellModel(object):
 
         for i, input_queue in enumerate(input_queues): 
             serialized_sequence_example = input_queue.dequeue()
+#            encoded_image, caption = input_ops.parse_sequence_example(
+#                serialized_sequence_example,
+#                image_feature=self.config.image_feature_name, #TODO change this!
+#                caption_feature=self.config.caption_feature_name)
             encoded_image, caption = input_ops.parse_sequence_example(
                 serialized_sequence_example,
-                image_feature=self.config.image_feature_name, #TODO change this!
+                image_feature=self.config.image_keys[i], #TODO change this!
                 caption_feature=self.config.caption_feature_name)
             image = self.process_image(encoded_image, thread_id=thread_id)
             images_and_captions_list[i].append([image, caption])
@@ -319,7 +323,7 @@ class ShowAndTellModel(object):
           initializer=self.initializer)
       tf.get_variable_scope().reuse_variables()  #needed to share paramters
       for input_seq in self.input_seqs:
-          seq_embeddings.append(tf.nn.embedding_lookup(embedding_map, self.input_seqs[0]))
+          seq_embeddings.append(tf.nn.embedding_lookup(embedding_map, input_seq))
 
     print(seq_embeddings[0])
     self.seq_embeddings = seq_embeddings
@@ -404,13 +408,12 @@ class ShowAndTellModel(object):
                                                 dtype=tf.float32,
                                                 scope=lstm_scope)
             lstm_outputs.append(lstm_output)
-
     with tf.variable_scope("logits", reuse=tf.AUTO_REUSE) as logits_scope:
       logits = []
       tf.get_variable_scope().reuse_variables()
       for lstm_output in lstm_outputs:
           logit = tf.contrib.layers.fully_connected(
-              inputs=lstm_outputs[0],
+              inputs=lstm_output,
               num_outputs=self.config.vocab_size,
               activation_fn=None,
               reuse=tf.AUTO_REUSE,
@@ -418,8 +421,8 @@ class ShowAndTellModel(object):
               scope=logits_scope)
           logits.append(logit)
       print("logits: ", logits[0])
-    #debug_loss = tf.reduce_sum(tf.subtract(logits[0], logits[1]), name="debug_loss")
-    #tf.losses.add_loss(debug_loss)
+#    debug_loss = tf.reduce_sum(tf.subtract(lstm_outputs[0], lstm_outputs[1]), name="debug_loss")
+#    tf.losses.add_loss(debug_loss)
       
     if self.mode == "inference":
       tf.nn.softmax(logits, name="softmax")
@@ -443,6 +446,7 @@ class ShowAndTellModel(object):
       tf.losses.add_loss(batch_loss)
 
       if self.flags['blocked_image']:
+         blocked_loss_weight = tf.to_float(tf.constant(self.flags['blocked_loss_weight']))
          #write blocked weight loss
          softmaxes = tf.nn.softmax(logits[1], 2)
          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
@@ -450,7 +454,8 @@ class ShowAndTellModel(object):
          diff = tf.abs(tf.subtract(c0, c1))
          blocked_weights = tf.to_float(self.input_mask[1])
          #this value is very low; at least at the start.  Will want to consider a lamda value.
-         blocked_loss = tf.reduce_sum(tf.multiply(diff, blocked_weights), 
+         blocked_loss = tf.reduce_sum(tf.multiply(tf.multiply(diff, blocked_weights), 
+                                      blocked_loss_weight), 
                                  name="blocked_loss")
          
          tf.losses.add_loss(blocked_loss)
@@ -462,9 +467,7 @@ class ShowAndTellModel(object):
       total_loss = tf.losses.get_total_loss(False)
 
       # Add summaries.
-#      tf.summary.scalar("losses/batch_loss", batch_loss)
-
-
+      tf.summary.scalar("losses/batch_loss", batch_loss)
       if self.flags['blocked_image']:
           tf.summary.scalar("losses/blocked_loss", blocked_loss) 
       tf.summary.scalar("losses/total_loss", total_loss)
