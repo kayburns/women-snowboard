@@ -394,30 +394,32 @@ class ShowAndTellModel(object):
 
       else:
         # Run the batch of sequence embeddings through the LSTM.
-        sequence_length = tf.reduce_sum(self.input_mask[0], 1)
-        import pdb; pdb.set_trace()
-        lstm_outputs1, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
-                                            inputs=self.seq_embeddings[0],
-                                            sequence_length=sequence_length,
-                                            initial_state=initial_states[0],
-                                            dtype=tf.float32,
-                                            scope=lstm_scope)
-        lstm_outputs2, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
-                                            inputs=self.seq_embeddings[0],
-                                            sequence_length=sequence_length,
-                                            initial_state=initial_states[0],
-                                            dtype=tf.float32,
-                                            scope=lstm_scope)
-        lstm_outputs = tf.concat([lstm_outputs1, lstm_outputs2], axis=0)
+        lstm_outputs = []
+        for i in range(self.num_parallel_batches):
+            sequence_length = tf.reduce_sum(self.input_mask[i], 1)
+            lstm_output, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
+                                                inputs=self.seq_embeddings[i],
+                                                sequence_length=sequence_length,
+                                                initial_state=initial_states[i],
+                                                dtype=tf.float32,
+                                                scope=lstm_scope)
+            lstm_outputs.append(lstm_output)
 
-    with tf.variable_scope("logits") as logits_scope:
-      logits = tf.contrib.layers.fully_connected(
-          inputs=lstm_outputs,
-          num_outputs=self.config.vocab_size,
-          activation_fn=None,
-          weights_initializer=self.initializer,
-          scope=logits_scope)
-      print("logits: ", logits)
+    with tf.variable_scope("logits", reuse=tf.AUTO_REUSE) as logits_scope:
+      logits = []
+      tf.get_variable_scope().reuse_variables()
+      for lstm_output in lstm_outputs:
+          import pdb; pdb.set_trace()
+          logit = tf.contrib.layers.fully_connected(
+              inputs=lstm_outputs[0],
+              num_outputs=self.config.vocab_size,
+              activation_fn=None,
+              reuse=tf.AUTO_REUSE,
+              weights_initializer=self.initializer,
+              scope=logits_scope)
+          logits.append(logit)
+      print("logits: ", logits[0])
+    debug_loss = tf.reduce_sum(tf.subtract(logits[0], logits[1]), name="debug_loss")
       
     #need to split logits
 
@@ -460,7 +462,6 @@ class ShowAndTellModel(object):
                           tf.reduce_sum(weights),
                           name="batch_loss")
 
-      debug_loss = tf.reduce_sum(tf.subtract(lstm_outputs1, lstm_outputs2), name="debug_loss")
       #tf.losses.add_loss(batch_loss)
       tf.losses.add_loss(debug_loss)
 
