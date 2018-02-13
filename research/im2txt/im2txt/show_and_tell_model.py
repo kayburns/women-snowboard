@@ -183,13 +183,13 @@ class ShowAndTellModel(object):
                                   name="input_feed")
 
       # Process image and insert batch dimensions.
-      images = tf.expand_dims(self.process_image(image_feed), 0)
-      input_seqs = tf.expand_dims(input_feed, 1)
+      all_images = [tf.expand_dims(self.process_image(image_feed), 0)]
+      all_input_seqs = [tf.expand_dims(input_feed, 1)]
 
       # No target sequences or input mask in inference mode.
       # No input mask in saliency mode. Single sentence not padded.
       input_mask = None
-        
+      self.num_parallel_batches = 1 
     else:
       # Prefetch serialized SequenceExample protos.
       input_queues = []
@@ -360,7 +360,7 @@ class ShowAndTellModel(object):
       if self.mode == "inference":
         # In inference mode, use concatenated states for convenient feeding and
         # fetching.
-        tf.concat(axis=1, values=initial_state, name="initial_state")
+        tf.concat(axis=1, values=initial_states[0], name="initial_state")
 
         # Placeholder for feeding a batch of concatenated states.
         state_feed = tf.placeholder(dtype=tf.float32,
@@ -370,11 +370,13 @@ class ShowAndTellModel(object):
 
         # Run a single LSTM step.
         lstm_outputs, state_tuple = lstm_cell(
-            inputs=tf.squeeze(self.seq_embeddings, axis=[1]),
+            inputs=tf.squeeze(self.seq_embeddings[0], axis=[1]),
             state=state_tuple)
 
         # Concatentate the resulting state.
         tf.concat(axis=1, values=state_tuple, name="state")
+        
+        lstm_outputs = [lstm_outputs]
 
       elif self.mode == "saliency":
         # Run the batch of sequence embeddings through the LSTM.
@@ -414,7 +416,7 @@ class ShowAndTellModel(object):
 #    tf.losses.add_loss(debug_loss)
       
     if self.mode == "inference":
-      tf.nn.softmax(logits, name="softmax")
+      tf.nn.softmax(logits[0], name="softmax")
     elif self.mode == "saliency":
       targets = tf.reshape(self.target_seqs, [-1])
       loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits)
