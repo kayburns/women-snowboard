@@ -29,7 +29,7 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.flags.DEFINE_string("input_file_pattern", "",
                        "File pattern of sharded TFRecord input files.")
-tf.flags.DEFINE_string("blocked_input_file_pattern", "",
+tf.flags.DEFINE_string("blocked_input_file_pattern", "", #new flag
                        "File pattern of sharded TFRecord input files.")
 tf.flags.DEFINE_string("inception_checkpoint_file", "",
                        "Path to a pretrained inception_v3 model.")
@@ -59,6 +59,8 @@ def main(unused_argv):
   model_config = configuration.ModelConfig()
   model_config.input_file_pattern = FLAGS.input_file_pattern
   model_config.image_keys = [model_config.image_feature_name]
+
+  #set flags if you are training with blocked image
   if FLAGS.blocked_image:
       assert FLAGS.blocked_input_file_pattern, "--blocked_input_file_pattern is required if you would like to train with blocked images"
       model_config.blocked_input_file_pattern = FLAGS.blocked_input_file_pattern

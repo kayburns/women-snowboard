@@ -204,7 +204,7 @@ class ShowAndTellModel(object):
       input_queues.append(input_queue)
 
       if self.flags['blocked_image']:
-          #will have to write some logit to input two input_file_patterns
+          #start a new input queue for the blocked images
           input_queue2 = input_ops.prefetch_input_data(
               self.reader,
               self.config.blocked_input_file_pattern,
@@ -216,7 +216,6 @@ class ShowAndTellModel(object):
           input_queues.append(input_queue2)
 
       self.num_parallel_batches = len(input_queues)
-      #self.num_parallel_batches = 2 #for debugging 
 
       # Image processing and random distortion. Split across multiple threads
       # with each thread applying a slightly different distortion.
@@ -225,17 +224,11 @@ class ShowAndTellModel(object):
       for thread_id in range(self.config.num_preprocess_threads):
         serialized_sequence_example = input_queue.dequeue()
 
-      #Code to read in images: this is where changes for blocked images are done
-
       images_and_captions_list = [[] for _ in range(len(input_queues))]
       for thread_id in range(self.config.num_preprocess_threads):
 
         for i, input_queue in enumerate(input_queues): 
             serialized_sequence_example = input_queue.dequeue()
-#            encoded_image, caption = input_ops.parse_sequence_example(
-#                serialized_sequence_example,
-#                image_feature=self.config.image_feature_name, #TODO change this!
-#                caption_feature=self.config.caption_feature_name)
             encoded_image, caption = input_ops.parse_sequence_example(
                 serialized_sequence_example,
                 image_feature=self.config.image_keys[i], #TODO change this!
@@ -265,13 +258,9 @@ class ShowAndTellModel(object):
           all_target_seqs.append(outputs[2])
           all_input_masks.append(outputs[3]) 
 
-      #self.target_seqs = [all_target_seqs[0], all_target_seqs[0]] #for debugging
       self.target_seqs = all_target_seqs 
-      #self.input_mask = [all_input_masks[0], all_input_masks[0]]
       self.input_mask = all_input_masks 
-    #self.images = tf.concat([all_images[0], all_images[0]], 0)
     self.images = tf.concat(all_images, 0)
-    #self.input_seqs = [all_input_seqs[0], all_input_seqs[0]] 
     self.input_seqs = all_input_seqs 
 
   def build_image_embeddings(self):
@@ -347,7 +336,7 @@ class ShowAndTellModel(object):
     # new_c * sigmoid(o).
     lstm_cell = tf.contrib.rnn.BasicLSTMCell(
         num_units=self.config.num_lstm_units, state_is_tuple=True)
-    if self.mode == "train":  #commented out for debug
+    if self.mode == "train":  #this add dropout (and thus stochasticity to lstm cell)
       lstm_cell = tf.contrib.rnn.DropoutWrapper(
           lstm_cell,
           input_keep_prob=self.config.lstm_dropout_keep_prob,
@@ -431,7 +420,7 @@ class ShowAndTellModel(object):
       loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits)
       print("loss :", loss)
       self.target_cross_entropy_losses = loss
-      # self.target_cross_entropy_losses = tf.reshape(loss, [self.num_patches, tf.shape(loss)[0]/self.num_patches]) # Used to generate saliency
+
     else:
       targets_reshape = [tf.reshape(target, [-1]) for target in self.target_seqs]
       weights_reshape = [tf.to_float(tf.reshape(weight, [-1])) for weight in self.input_mask]
@@ -445,6 +434,7 @@ class ShowAndTellModel(object):
                           name="batch_loss")
       tf.losses.add_loss(batch_loss)
 
+      #code for blocked image loss
       if self.flags['blocked_image']:
          blocked_loss_weight = tf.to_float(tf.constant(self.flags['blocked_loss_weight']))
          #write blocked weight loss
@@ -460,11 +450,7 @@ class ShowAndTellModel(object):
          
          tf.losses.add_loss(blocked_loss)
  
-
-
-
-#      import pdb; pdb.set_trace()
-      total_loss = tf.losses.get_total_loss(False)
+      total_loss = tf.losses.get_total_loss() #By default this includes regularization
 
       # Add summaries.
       tf.summary.scalar("losses/batch_loss", batch_loss)
