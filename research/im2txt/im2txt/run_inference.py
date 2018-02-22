@@ -84,7 +84,6 @@ def main(_):
       sentence += '.'
       caption_dict = {'caption': sentence, 'image_id': image_id }
       caption_dicts.append(caption_dict)
-    import pdb; pdb.set_trace()
    
     with open(FLAGS.dump_file, 'w') as outfile:
       json.dump(caption_dicts, outfile)
