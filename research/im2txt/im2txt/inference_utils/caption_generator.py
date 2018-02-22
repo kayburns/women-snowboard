@@ -154,7 +154,7 @@ class CaptionGenerator(object):
     initial_beam = Caption(
         sentence=[self.vocab.start_id],
         state=initial_state[0],
-        logprob=0.0,
+        logprob=[],
         score=0.0,
         metadata=[""])
     partial_captions = TopN(self.beam_size)
@@ -184,8 +184,9 @@ class CaptionGenerator(object):
           if p < 1e-12:
             continue  # Avoid log(0).
           sentence = partial_caption.sentence + [w]
-          logprob = partial_caption.logprob + math.log(p)
-          score = logprob
+          #logprob = partial_caption.logprob + math.log(p)
+          logprob.append(math.log(p))
+          score = np.sum(logprob)
           if metadata:
             metadata_list = partial_caption.metadata + [metadata[i]]
           else:
