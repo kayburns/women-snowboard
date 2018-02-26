@@ -215,7 +215,6 @@ def batch_with_dynamic_pad(images_and_captions,
         #add one to all values; now indicator should have 1's and values = loss_weight_value
         indicator = tf.add(loss_weight_sum, indicator)       
   
-    #enqueue_list.append(expand_list([image, input_seq, target_seq, indicator]))
     enqueue_list.append([image, input_seq, target_seq, indicator])
 
   outputs = tf.train.batch_join(

@@ -412,8 +412,6 @@ class ShowAndTellModel(object):
               scope=logits_scope)
           logits.append(logit)
       print("logits: ", logits[0])
-#    debug_loss = tf.reduce_sum(tf.subtract(lstm_outputs[0], lstm_outputs[1]), name="debug_loss")
-#    tf.losses.add_loss(debug_loss)
       
     if self.mode == "inference":
       tf.nn.softmax(logits[0], name="softmax")
@@ -438,19 +436,30 @@ class ShowAndTellModel(object):
 
       #code for blocked image loss
       if self.flags['blocked_image']:
-         blocked_loss_weight = tf.to_float(tf.constant(self.flags['blocked_loss_weight']))
-         #write blocked weight loss
-         softmaxes = tf.nn.softmax(logits[1], 2)
-         c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
-         c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
-         diff = tf.abs(tf.subtract(c0, c1))
-         blocked_weights = tf.to_float(self.input_mask[1])
-         #this value is very low; at least at the start.  Will want to consider a lamda value.
-         blocked_loss = tf.reduce_sum(tf.multiply(tf.multiply(diff, blocked_weights), 
-                                      blocked_loss_weight), 
-                                 name="blocked_loss")
-         
-         tf.losses.add_loss(blocked_loss)
+          blocked_loss_weight = tf.to_float(tf.constant(self.flags['blocked_loss_weight']))
+          #write blocked weight loss
+          softmaxes = tf.nn.softmax(logits[1], 2)
+          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+          diff = tf.abs(tf.subtract(c0, c1))
+          blocked_weights = tf.to_float(self.input_mask[1])
+          #this value is very low; at least at the start.  Will want to consider a lamda value.
+          blocked_loss = tf.reduce_sum(tf.multiply(tf.multiply(diff, blocked_weights), 
+                                       blocked_loss_weight), 
+                                  name="blocked_loss")
+          
+          tf.losses.add_loss(blocked_loss)
+      if self.flags['blocked_image_ce']:
+          losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
+                                                               logits=logits_reshape[1])
+          for word in confusion_word_idx:
+              #weights_reshape[1] = tf.where(tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)), tf.constant([0], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
+              condition = tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
+              weights_reshape[1] = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
+          blocked_image_ce = tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
+                              tf.reduce_sum(weights_reshape[1]),
+                              name="blocked_image_ce")
+          tf.losses.add_loss(blocked_image_ce)
  
       total_loss = tf.losses.get_total_loss() #By default this includes regularization
 
