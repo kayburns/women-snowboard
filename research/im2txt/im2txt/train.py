@@ -47,9 +47,12 @@ tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters
 #to control loss function
 tf.flags.DEFINE_integer("loss_weight_value", None, "To increase loss weight on man/woman words.")   
 tf.flags.DEFINE_boolean("blocked_image", False, "If blocked images should be included")   
+tf.flags.DEFINE_boolean("blocked_weight_selective", True, "Turn this flag off if you wonly want to look at differences in probabilities across all words")
 tf.flags.DEFINE_integer("blocked_loss_weight", 100, "How much to weight blocked loss.")
 tf.flags.DEFINE_boolean("blocked_image_ce", False, "Flag to include cross entropy loss on blocked images")
-tf.flags.DEFINE_boolean("blocked_weight_selective", True, "Turn this flag off if you wonly want to look at differences in probabilities across all words")
+tf.flags.DEFINE_integer("blocked_image_ce_weight", 1, "weight for blocked image ce loss")
+tf.flags.DEFINE_boolean("confusion_word_non_blocked", False, "Flag to penalize non-blocked images if they name the wrong gender")
+tf.flags.DEFINE_integer("confusion_word_non_blocked_weight", 1, "weight for blocked image ce loss")
 
 tf.logging.set_verbosity(tf.logging.INFO)
 

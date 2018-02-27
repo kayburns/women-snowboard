@@ -461,11 +461,39 @@ class ShowAndTellModel(object):
           for word in confusion_word_idx:
               condition = tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
               weights_reshape[1] = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
-          blocked_image_ce = tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
-                              tf.reduce_sum(weights_reshape[1]),
-                              name="blocked_image_ce")
+          blocked_image_ce = tf.multiply(tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
+                             tf.reduce_sum(weights_reshape[1])),
+                             tf.to_float(tf.constant(self.flags['blocked_image_ce_weight'])),
+                             name="blocked_image_ce")
           tf.losses.add_loss(blocked_image_ce)
-#      if self.flags['confusion_word_non_blocked']:
+      if self.flags['confusion_word_non_blocked']:
+          blocked_weights = self.input_mask[0]
+
+          softmaxes = tf.nn.softmax(logits[0], 2)
+          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+          subs = [tf.subtract(c0, c1), 
+                  tf.subtract(c1, c0)]
+
+          losses = []
+          count = 0
+          for word, sub in zip(word, subs):
+              #only want loss where man/woman *is* present in the image
+              condition = tf.equal(self.target_seqs[0], 
+                                   tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
+              blocked_weights_word = tf.where(condition, 
+                                              blocked_weights, 
+                                              tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for confusion words
+              
+              diff = tf.subtract(tf.constant([1]) - sub) #want p(man) - p(woman) to be high
+    
+              blocked_weights_word = tf.to_float(blocked_weights_word)
+              blocked_loss = tf.multiply(tf.reduce_sum(tf.multiply(diff, blocked_weights_word), 
+                                           tf.to_float(tf.constant(self.flags['confusion_word_non_blocked_weight']))), 
+                                      name="non-blocked-word-%d" %count)
+              count += 1
+              losses.append(blocked_loss) 
+          tf.losses.add_loss(tf.add(losses[0], losses[1]))
  
       total_loss = tf.losses.get_total_loss() #By default this includes regularization
 
