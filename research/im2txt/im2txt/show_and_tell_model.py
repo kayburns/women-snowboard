@@ -477,7 +477,7 @@ class ShowAndTellModel(object):
 
           losses = []
           count = 0
-          for word, sub in zip(word, subs):
+          for word, sub in zip(confusion_word_idx, subs):
               #only want loss where man/woman *is* present in the image
               condition = tf.equal(self.target_seqs[0], 
                                    tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
@@ -485,11 +485,11 @@ class ShowAndTellModel(object):
                                               blocked_weights, 
                                               tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for confusion words
               
-              diff = tf.subtract(tf.constant([1]) - sub) #want p(man) - p(woman) to be high
+              diff = tf.subtract(tf.constant([1.]), sub) #want p(man) - p(woman) to be high
     
               blocked_weights_word = tf.to_float(blocked_weights_word)
-              blocked_loss = tf.multiply(tf.reduce_sum(tf.multiply(diff, blocked_weights_word), 
-                                           tf.to_float(tf.constant(self.flags['confusion_word_non_blocked_weight']))), 
+              blocked_loss = tf.multiply(tf.reduce_sum(tf.multiply(diff, blocked_weights_word)), 
+                                           tf.to_float(tf.constant(self.flags['confusion_word_non_blocked_weight'])), 
                                       name="non-blocked-word-%d" %count)
               count += 1
               losses.append(blocked_loss) 
