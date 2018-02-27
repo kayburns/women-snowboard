@@ -447,7 +447,7 @@ class ShowAndTellModel(object):
           if self.flags['blocked_weight_selective']: #select only man woman words
               for word in confusion_word_idx:
                   condition = tf.equal(self.target_seqs[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
-                  blocked_weights = tf.where(condition, tf.zeros_like(blocked_weights, dtype=tf.int32), blocked_weights) # 0 out weights for confusion words
+                  blocked_weights = tf.where(condition, blocked_weights, tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for confusion words
               #this value is very low; at least at the start.  Will want to consider a lamda value.
           blocked_weights = tf.to_float(blocked_weights)
           blocked_loss = tf.reduce_sum(tf.multiply(tf.multiply(diff, blocked_weights), 
@@ -465,6 +465,7 @@ class ShowAndTellModel(object):
                               tf.reduce_sum(weights_reshape[1]),
                               name="blocked_image_ce")
           tf.losses.add_loss(blocked_image_ce)
+#      if self.flags['confusion_word_non_blocked']:
  
       total_loss = tf.losses.get_total_loss() #By default this includes regularization
 
