@@ -442,8 +442,14 @@ class ShowAndTellModel(object):
           c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
           c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
           diff = tf.abs(tf.subtract(c0, c1))
-          blocked_weights = tf.to_float(self.input_mask[1])
-          #this value is very low; at least at the start.  Will want to consider a lamda value.
+          blocked_weights = self.input_mask[1]
+
+          if self.flags['blocked_weight_selective']: #select only man woman words
+              for word in confusion_word_idx:
+                  condition = tf.equal(self.target_seqs[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
+                  blocked_weights = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), blocked_weights) # 0 out weights for confusion words
+              #this value is very low; at least at the start.  Will want to consider a lamda value.
+          blocked_weights = tf.to_float(blocked_weights)
           blocked_loss = tf.reduce_sum(tf.multiply(tf.multiply(diff, blocked_weights), 
                                        blocked_loss_weight), 
                                   name="blocked_loss")
@@ -453,7 +459,6 @@ class ShowAndTellModel(object):
           losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
                                                                logits=logits_reshape[1])
           for word in confusion_word_idx:
-              #weights_reshape[1] = tf.where(tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)), tf.constant([0], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
               condition = tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
               weights_reshape[1] = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
           blocked_image_ce = tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
