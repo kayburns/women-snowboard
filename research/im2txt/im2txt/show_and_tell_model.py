@@ -480,7 +480,7 @@ class ShowAndTellModel(object):
               zero = tf.constant(0.)
               bias = tf.constant(0.1) 
               confusion_losses = [tf.maximum(zero, tf.add(tf.subtract(c1, c0), bias)), 
-                  tf.maximum(zero, tf.add(tf.subtract(c1, c0), bias))]
+                  tf.maximum(zero, tf.add(tf.subtract(c0, c1), bias))]
  
           if self.flags['confusion_word_non_blocked_type'] == 'quotient':
               epsilon = tf.constant(1e-5)
