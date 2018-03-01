@@ -19,4 +19,5 @@ python im2txt/train.py \
   --blocked_image_ce_weight=1 \
   --confusion_word_non_blocked \
   --confusion_word_non_blocked_weight=1 \
+  --confusion_word_non_blocked_type="quotient" \ #options: subtraction, hinge, quotient
   --number_of_steps=1000000

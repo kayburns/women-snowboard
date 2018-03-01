@@ -53,6 +53,8 @@ tf.flags.DEFINE_boolean("blocked_image_ce", False, "Flag to include cross entrop
 tf.flags.DEFINE_integer("blocked_image_ce_weight", 1, "weight for blocked image ce loss")
 tf.flags.DEFINE_boolean("confusion_word_non_blocked", False, "Flag to penalize non-blocked images if they name the wrong gender")
 tf.flags.DEFINE_integer("confusion_word_non_blocked_weight", 1, "weight for blocked image ce loss")
+tf.flags.DEFINE_string("confusion_word_non_blocked_type", "subtraction",
+                       "Which loss to use for the confusion loss on non-blocked images.  Options: subtraction, hinge, quotient")
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
