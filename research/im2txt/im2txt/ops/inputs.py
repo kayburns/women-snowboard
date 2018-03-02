@@ -20,7 +20,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from im2txt.inference_utils import vocabulary
+try:
+    from im2txt.inference_utils import vocabulary
+except:
+    import sys
+    sys.path.append('im2txt/')
 
 vocab_file = 'im2txt/data/word_counts.txt'
 #vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'

@@ -21,9 +21,14 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
-
-from im2txt import configuration
-from im2txt import show_and_tell_model
+try:
+    from im2txt import configuration
+except:
+    import configuration #lisa added this bc there is weird dependency issue on Asp
+try:
+    from im2txt import show_and_tell_model
+except:
+    import show_and_tell_model
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -40,6 +45,7 @@ tf.flags.DEFINE_boolean("train_inception", False,
 tf.flags.DEFINE_boolean("debug", False,
                         "If the model should be run in debug mode.")
 tf.flags.DEFINE_integer("number_of_steps", 1000000, "Number of training steps.")
+tf.flags.DEFINE_integer("batch_size", 32, "size of batch")
 tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
 tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters.")   
@@ -66,7 +72,13 @@ def main(unused_argv):
   model_config = configuration.ModelConfig()
   model_config.input_file_pattern = FLAGS.input_file_pattern
   model_config.image_keys = [model_config.image_feature_name]
+  model_config.batch_size = FLAGS.batch_size
 
+  #assert all batch sizes are right
+  if FLAGS.train_inception:
+    assert FLAGS.batch_size == 8 
+  else:
+    assert FLAGS.batch_size == 32
   #set flags if you are training with blocked image
   if FLAGS.blocked_image:
       assert FLAGS.blocked_input_file_pattern, "--blocked_input_file_pattern is required if you would like to train with blocked images"

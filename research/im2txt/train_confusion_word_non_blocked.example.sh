@@ -2,8 +2,8 @@
 
 export CUDA_VISIBLE_DEVICES="3"
 
-export MSCOCO_DIR='/home/lisaanne/lev/data1/caption_bias/models/research/im2txt/im2txt/data/preprocessed' 
-export BLOCKED_MSCOCO_DIR='/home/lisaanne/lev/data1/caption_bias/models/research/im2txt/im2txt/data/blocked_subset_data_avg' #blocked data
+export MSCOCO_DIR='/data1/caption_bias/models/research/im2txt/im2txt/data/preprocessed' 
+export BLOCKED_MSCOCO_DIR='/data1/caption_bias/models/research/im2txt/im2txt/data/blocked_subset_data_avg' #blocked data
 export INCEPTION_CHECKPOINT='/home/lisaanne//lev/data1/caption_bias/models/research/im2txt/im2txt/data/inception_v3.ckpt'
 export MODEL_DIR='/data/lisaanne/fairness/checkpoints/test_block_image_ce/'
 

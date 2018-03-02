@@ -26,9 +26,17 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from im2txt.ops import image_embedding
-from im2txt.ops import image_processing
-from im2txt.ops import inputs as input_ops
+try:
+    from im2txt.ops import image_embedding
+    from im2txt.ops import image_processing
+    from im2txt.ops import inputs as input_ops
+except:
+    import sys
+    sys.path.append('im2txt/ops/')
+    sys.path.append('inference_utils/')
+    import image_embedding
+    import image_processing
+    import inputs as input_ops
 
 from inference_utils import vocabulary
 vocab_file = 'im2txt/data/word_counts.txt'
@@ -468,7 +476,6 @@ class ShowAndTellModel(object):
           tf.losses.add_loss(blocked_image_ce)
       if self.flags['confusion_word_non_blocked']:
           blocked_weights = self.input_mask[0]
-
           softmaxes = tf.nn.softmax(logits[0], 2)
           c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
           c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
