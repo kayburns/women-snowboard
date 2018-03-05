@@ -211,7 +211,7 @@ class ShowAndTellModel(object):
           num_reader_threads=self.config.num_input_reader_threads)
       input_queues.append(input_queue)
 
-      if self.flags['blocked_image']:
+      if self.flags['blocked_image'] or self.flags['two_input_queues']:
           #start a new input queue for the blocked images
           input_queue2 = input_ops.prefetch_input_data(
               self.reader,
@@ -441,6 +441,15 @@ class ShowAndTellModel(object):
                           tf.reduce_sum(weights_reshape[0]),
                           name="batch_loss")
       tf.losses.add_loss(batch_loss)
+
+
+      if self.flags['two_input_queues']:
+          losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
+                                                                  logits=logits_reshape[1])
+          batch_loss2 = tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
+                              tf.reduce_sum(weights_reshape[1]),
+                              name="batch_loss2")
+          tf.losses.add_loss(batch_loss2)
 
       #code for blocked image loss
       if self.flags['blocked_image']:

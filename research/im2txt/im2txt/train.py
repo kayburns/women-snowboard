@@ -34,6 +34,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.flags.DEFINE_string("input_file_pattern", "",
                        "File pattern of sharded TFRecord input files.")
+tf.flags.DEFINE_string("input_file_pattern2", None,
+                       "File pattern of sharded TFRecord input files.")
 tf.flags.DEFINE_string("blocked_input_file_pattern", "", #new flag
                        "File pattern of sharded TFRecord input files.")
 tf.flags.DEFINE_string("inception_checkpoint_file", "",
@@ -53,6 +55,7 @@ tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters
 #to control loss function
 tf.flags.DEFINE_integer("loss_weight_value", None, "To increase loss weight on man/woman words.")   
 tf.flags.DEFINE_boolean("blocked_image", False, "If blocked images should be included")   
+tf.flags.DEFINE_boolean("two_input_queues", False, "If you would like to use two input queues")   
 tf.flags.DEFINE_boolean("blocked_weight_selective", True, "Turn this flag off if you wonly want to look at differences in probabilities across all words")
 tf.flags.DEFINE_integer("blocked_loss_weight", 100, "How much to weight blocked loss.")
 tf.flags.DEFINE_boolean("blocked_image_ce", False, "Flag to include cross entropy loss on blocked images")
@@ -84,6 +87,10 @@ def main(unused_argv):
       assert FLAGS.blocked_input_file_pattern, "--blocked_input_file_pattern is required if you would like to train with blocked images"
       model_config.blocked_input_file_pattern = FLAGS.blocked_input_file_pattern
       model_config.image_keys.append(model_config.blocked_image_feature_name)
+  if FLAGS.two_input_queues:
+      assert FLAGS.input_file_pattern2, "--input_file_pattern2 is required if you would like to train with blocked images"
+      model_config.blocked_input_file_pattern = FLAGS.input_file_pattern2
+      model_config.image_keys.append(model_config.image_feature_name)
   model_config.inception_checkpoint_file = FLAGS.inception_checkpoint_file
   training_config = configuration.TrainingConfig()
 
