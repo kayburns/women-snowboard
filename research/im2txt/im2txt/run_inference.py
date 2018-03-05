@@ -26,6 +26,8 @@ import json
 
 import tensorflow as tf
 
+sys.path.append('./im2txt/')
+sys.path.append('.')
 from im2txt import configuration
 from im2txt import inference_wrapper
 from im2txt.inference_utils import caption_generator
@@ -72,7 +74,6 @@ def main(_):
     generator = caption_generator.CaptionGenerator(model, vocab)
     caption_dicts = [] 
     for i, filename in enumerate(filenames):
-      sys.stdout.write('\r%d/%d' %(i, len(filenames)))
       with tf.gfile.GFile(filename, "r") as f:
         image = f.read()
       captions = generator.beam_search(sess, image)
@@ -84,6 +85,7 @@ def main(_):
       sentence += '.'
       caption_dict = {'caption': sentence, 'image_id': image_id }
       caption_dicts.append(caption_dict)
+      sys.stdout.write('\n%d/%d: %s' %(i, len(filenames), sentence))
    
     with open(FLAGS.dump_file, 'w') as outfile:
       json.dump(caption_dicts, outfile)

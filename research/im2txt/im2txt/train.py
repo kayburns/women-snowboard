@@ -82,6 +82,8 @@ def main(unused_argv):
     assert FLAGS.batch_size == 8 
   else:
     assert FLAGS.batch_size == 32
+  if FLAGS>two_input_queues:
+    FLAGS.batch_size = FLAGS.batch_size/2
   #set flags if you are training with blocked image
   if FLAGS.blocked_image:
       assert FLAGS.blocked_input_file_pattern, "--blocked_input_file_pattern is required if you would like to train with blocked images"
