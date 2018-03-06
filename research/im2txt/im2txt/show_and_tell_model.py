@@ -39,7 +39,7 @@ except:
     import inputs as input_ops
 
 from inference_utils import vocabulary
-vocab_file = 'im2txt/data/word_counts.txt'
+vocab_file = 'im2txt/data/word_counts_fresh.txt'
 vocab = vocabulary.Vocabulary(vocab_file) 
 confusion_words = ['man', 'woman']
 confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]

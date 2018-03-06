@@ -26,7 +26,7 @@ except:
     import sys
     sys.path.append('im2txt/')
 
-vocab_file = 'im2txt/data/word_counts.txt'
+vocab_file = 'im2txt/data/word_counts_fresh.txt'
 #vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
 import pdb
 if vocab_file != 'im2txt/data/word_counts.txt':
