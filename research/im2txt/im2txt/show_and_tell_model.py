@@ -63,6 +63,8 @@ class ShowAndTellModel(object):
       mode: "train", "eval" or "inference".
       train_inception: Whether the inception submodel variables are trainable.
     """
+    print("FLAGS")
+    print (flags)
     assert mode in ["train", "eval", "saliency", "inference"]
     self.config = config
     self.mode = mode
