@@ -65,7 +65,7 @@ class ShowAndTellModel(object):
     """
     print("FLAGS")
     print (flags)
-    assert mode in ["train", "eval", "saliency", "inference"]
+    assert mode in ["train", "eval", "saliency", "inference", "gradcam"]
     self.config = config
     self.mode = mode
     self.train_inception = train_inception
@@ -184,7 +184,33 @@ class ShowAndTellModel(object):
       images = tf.pad(images, paddings)
       print("images: ", images)
       input_mask = None
+    elif self.mode == "gradcam":
+      image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
+      images = self.process_image(image_feed)
+      input_feed = tf.placeholder(dtype=tf.int64, shape=[None], name="input_feed")
+      # image is a Tensor of shape [height, width, channels] 
+      # caption is a 1-D Tensor of any length
+      self.config.batch_size = 1
+      queue_capacity = (2 * self.config.num_preprocess_threads * self.config.batch_size)
 
+      num_queues = 1
+      all_images = []
+      all_input_seqs = []
+      all_target_seqs = []
+      all_input_masks = []
+      enqueue_list = input_ops.batch_with_dynamic_pad(
+                                               [[images, input_feed]],
+                                               batch_size=self.config.batch_size,
+                                               queue_capacity=queue_capacity,
+                                               return_enqueue_list = True)
+      all_images.append(tf.expand_dims(enqueue_list[0][0],0))
+      all_input_seqs.append(tf.expand_dims(enqueue_list[0][1],0))
+      all_target_seqs.append(tf.expand_dims(enqueue_list[0][2],0))
+      all_input_masks.append(tf.expand_dims(enqueue_list[0][3],0))
+
+      self.target_seqs = all_target_seqs 
+      self.input_mask = all_input_masks 
+      self.num_parallel_batches = 1    
     elif self.mode == "inference":
       # In inference mode, images and inputs are fed via placeholders.
       image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
@@ -395,9 +421,8 @@ class ShowAndTellModel(object):
                                             inputs=self.seq_embeddings,
                                             initial_state=initial_state,
                                             dtype=tf.float32,
-                                            scope=lstm_scope)
-
-      else:
+                                            scope=lstm_scope)        
+      else: # including gradcam
         # Run the batch of sequence embeddings through the LSTM.
         lstm_outputs = []
         for i in range(self.num_parallel_batches):
@@ -430,7 +455,13 @@ class ShowAndTellModel(object):
       loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits)
       print("loss :", loss)
       self.target_cross_entropy_losses = loss
-
+    elif self.mode == "gradcam":
+      tf.nn.softmax(logits[0], name="softmax")
+      targets_reshape = [tf.reshape(target, [-1]) for target in self.target_seqs]      
+      logits_reshape = [tf.reshape(logit, [-1, 12000]) for logit in logits]
+      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape, logits=logits_reshape)
+      print("loss :", loss)
+      self.target_cross_entropy_losses = loss
     else:
       targets_reshape = [tf.reshape(target, [-1]) for target in self.target_seqs]
       weights_reshape = [tf.to_float(tf.reshape(weight, [-1])) for weight in self.input_mask]

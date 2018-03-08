@@ -141,7 +141,8 @@ def batch_with_dynamic_pad(images_and_captions,
                            queue_capacity,
                            add_summaries=True,
                            num_queues = 1, 
-                           loss_weight_value=None):
+                           loss_weight_value=None,
+                           return_enqueue_list = False):
   """Batches input images and captions.
 
   This function splits the caption into an input sequence and a target sequence,
@@ -240,4 +241,7 @@ def batch_with_dynamic_pad(images_and_captions,
     tf.summary.scalar("caption_length/indicator_max", tf.reduce_max(indicator))
 
   #return images, input_seqs, target_seqs, mask
-  return outputs 
+  if return_enqueue_list:
+    return enqueue_list
+  else:
+    return outputs 
