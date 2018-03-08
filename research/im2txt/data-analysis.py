@@ -13,7 +13,9 @@ import nltk
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/baseline.json'
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/ft_incep_captions_225k.json'
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/captions_blocked_10_fine_tune_incep_225k_iters.json'
-save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/confusionI_subtract_ce_blockLoss_fresh.json'
+#save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/confusionI_subtract_ce_blockLoss_fresh.json'
+#save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/blocked_loss_ce_loss_confusion_margin_2.json'
+save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json'
 predicted_captions = json.load(open(save_file))
 
 coco = COCO('coco/annotations/captions_val2014.json')
