@@ -103,9 +103,6 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     vmin = np.min(grad_mask_2d_upscaled)
     mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
 
-    #mask_grayscale_upscaled = mask_grayscale_upscaled / float(np.sum(mask_grayscale_upscaled))
-    #mask_grayscale_upscaled = mask_grayscale_upscaled / float(np.max(mask_grayscale_upscaled))
-
     fig, ax = plt.subplots(1, 1)
     plt.axis('off')
     ax.imshow( ((im_resized + 1.0) * 127.5)/255.0)
@@ -114,6 +111,7 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     if save_path != None:
       np.save(save_path + osp.basename(filename)[0:-4] + '_' + vocab.id_to_word(pred_max) + '.npy', grad_mask_2d)
       plt.savefig(save_path + osp.basename(filename)[0:-4] + '_' + vocab.id_to_word(pred_max) + '.jpg', bbox_inches='tight')
+      plt.close()
     else:
       plt.show()
  
@@ -130,5 +128,4 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     #plt.imshow(heat_map)
     #plt.axis('off')
     #plt.show()
-    
 

@@ -43,7 +43,7 @@ tf.flags.DEFINE_string("dump_file", "", "Text file containing the vocabulary.")
 #tf.flags.DEFINE_string("input_files", "",
 #                       "File pattern or comma-separated list of file patterns "
 #                       "of image files.")
-tf.flags.DEFINE_string("json_path", "", "JSON file with model predictions.")
+tf.flags.DEFINE_string("model_name", "", "Model name equivalebt to the JSON prediction file.")
 tf.flags.DEFINE_string("img_path", "", "Text file containing image IDs.")
 tf.flags.DEFINE_string("save_path", "", "Path to the location where outputs should be saved.")
 
@@ -59,7 +59,7 @@ def main(_):
     restore_fn = model.build_graph_from_config(configuration.ModelConfig(),
                                                FLAGS.checkpoint_path)
   #g.finalize()
-  save_path = osp.join(FLAGS.save_path, osp.basename(FLAGS.json_path)[0:-5])
+  save_path = osp.join(FLAGS.save_path, osp.basename(FLAGS.model_name)+'_gt')
   if FLAGS.save_path != "" and not osp.isdir(save_path):
     os.makedirs(save_path)
 
@@ -69,19 +69,28 @@ def main(_):
   woman_id = vocab.word_to_id('woman')
   person_id = vocab.word_to_id('person')
 
-  #filenames = glob.glob(FLAGS.input_files)
-  json_data = json.load(open(FLAGS.json_path, 'r'))
-  json_dict = {}
-  for entry in json_data:
-    image_id = entry['image_id']
-    if image_id not in json_dict:
-      json_dict[image_id] = entry['caption']
-    else:
-      ipdb.set_trace()
   of = open(FLAGS.img_path, 'r')
   image_ids = of.read().split('\n')
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
+
+  json_path = 'im2txt/data/mscoco/annotations/captions_val2014.json'
+  json_data = json.load(open(json_path, 'r'))
+  json_dict = {}
+  for entry in json_data['annotations']:
+    image_id = entry['image_id']
+    if str(image_id) not in image_ids: continue
+    if image_id not in json_dict:
+      caption = entry['caption']
+      tokens = caption.split(' ')      
+      if '-man' in FLAGS.img_path: look_for = 'man'
+      elif '-woman' in FLAGS.img_path: look_for = 'woman'
+      else: assert(False)
+      if look_for in tokens:
+        json_dict[image_id] = entry['caption']
+    if len(json_dict) == 500: break
+
+  image_ids = json_dict.keys()
 
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.
@@ -95,7 +104,7 @@ def main(_):
       with tf.gfile.GFile(filename, "r") as f:
         image = f.read()
       if image_id not in json_dict:        
-        continue
+        assert(False)
       caption = json_dict[image_id]
       print(caption)
       if caption[-1] == '.':
@@ -107,8 +116,7 @@ def main(_):
       woman_ids = [i for i, c in enumerate(encoded_tokens) if c == woman_id]
       person_ids = [i for i, c in enumerate(encoded_tokens) if c == person_id]
       if not (man_ids or woman_ids or person_ids):
-        # nothing to do
-        continue
+        assert(False)
       else:
         for wid in man_ids: 
           if FLAGS.save_path != "":
