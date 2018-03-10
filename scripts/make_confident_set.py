@@ -1,12 +1,13 @@
 import json
 import nltk
+import pdb
 
 coco_dir = '/data/lisaanne/coco/annotations/captions_%s2014.json' 
 
 man_word_list = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy']
 woman_word_list = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady']
 
-for split in ['train']:
+for split in ['train', 'val']:
     data = json.load(open(coco_dir %split))
 
     id_to_annotations = {}
@@ -28,6 +29,10 @@ for split in ['train']:
             woman_words = len(set(woman_word_list) & set(words)) > 0
             man_bool += man_words
             woman_bool += woman_words
+
+        if (man_bool > 0) & (woman_bool > 0):
+            man_bool = False
+            woman_bool = False
 
         man_bool = man_bool > 3
         woman_bool = woman_bool > 3

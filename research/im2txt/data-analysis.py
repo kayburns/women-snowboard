@@ -15,14 +15,20 @@ import nltk
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/captions_blocked_10_fine_tune_incep_225k_iters.json'
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/confusionI_subtract_ce_blockLoss_fresh.json'
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/blocked_loss_ce_loss_confusion_margin_2.json'
-save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json'
+#save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json'
+#save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/LW10_ft-inception-fresh.json'
+#save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json'
+#save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json'
+#save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/train_fine_tune_incep_bias_split-blocked-ims.json'
+save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json'
+
 predicted_captions = json.load(open(save_file))
 
 coco = COCO('coco/annotations/captions_val2014.json')
 generation_coco = coco.loadRes(save_file)
 coco_evaluator = COCOEvalCap(coco, generation_coco)
 print "Evaluation over the entire MSCOCO set:"
-coco_evaluator.evaluate()
+#coco_evaluator.evaluate()
 
 print "Evaluation over the biased set:"
 
@@ -34,13 +40,16 @@ img_2_anno_dict = create_dict_from_list(pickle.load(open(target_train)))
 img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_test))))
 img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_val))))
 
+caption_ids = set([cap['image_id'] for cap in predicted_captions])
+
 img_2_anno_dict_simple = {}
 for key, value in img_2_anno_dict.iteritems():
     id = int(key.split('_')[-1].split('.jpg')[0])
-    img_2_anno_dict_simple[id] = {}
-    img_2_anno_dict_simple[id]['male'] = value[0]
-    img_2_anno_dict_simple[id]['female'] = int(not value[0])  
-    assert int(not value[0]) == value[1]
+    if id in caption_ids:
+        img_2_anno_dict_simple[id] = {}
+        img_2_anno_dict_simple[id]['male'] = value[0]
+        img_2_anno_dict_simple[id]['female'] = int(not value[0])  
+        assert int(not value[0]) == value[1]
 
 bias_ids = img_2_anno_dict_simple.keys()
 
@@ -64,7 +73,7 @@ coco_evaluator = COCOEvalCap(coco, generation_coco)
 coco_evaluator.params['image_id'] = generation_coco.getImgIds()
 
 print "Evaluation over the biased MSCOCO set:"
-coco_evaluator.evaluate()
+#coco_evaluator.evaluate()
 
 #Get F1 scores for man/woman + some eval preprocessing
 
