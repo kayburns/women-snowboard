@@ -20,15 +20,15 @@ import nltk
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json'
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json'
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/train_fine_tune_incep_bias_split-blocked-ims.json'
-save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json'
-
+#save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json'
+save_file = '/data2/kaylee/caption_bias/models/research/im2txt/captions/confusiont_quotient_UW.json'
 predicted_captions = json.load(open(save_file))
 
-coco = COCO('coco/annotations/captions_val2014.json')
+coco = COCO('/data1/caption_bias/models/research/im2txt/coco-caption/annotations/captions_val2014.json')
 generation_coco = coco.loadRes(save_file)
 coco_evaluator = COCOEvalCap(coco, generation_coco)
 print "Evaluation over the entire MSCOCO set:"
-#coco_evaluator.evaluate()
+coco_evaluator.evaluate()
 
 print "Evaluation over the biased set:"
 
@@ -73,7 +73,7 @@ coco_evaluator = COCOEvalCap(coco, generation_coco)
 coco_evaluator.params['image_id'] = generation_coco.getImgIds()
 
 print "Evaluation over the biased MSCOCO set:"
-#coco_evaluator.evaluate()
+coco_evaluator.evaluate()
 
 #Get F1 scores for man/woman + some eval preprocessing
 
