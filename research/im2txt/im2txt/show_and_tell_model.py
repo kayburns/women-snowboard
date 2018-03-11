@@ -154,43 +154,13 @@ class ShowAndTellModel(object):
       self.target_seqs (training and eval only)
       self.input_mask (training and eval only)
     """
-    if self.mode == "saliency":
-      # In saliency mode, images are fed via placeholders.
-      image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
-      input_feed = tf.placeholder(dtype=tf.int64, shape=[None],
-                                  name="input_feed")
-
-      # calculate new dimension with image patches
-      images = self.process_image(image_feed)
-      width, height = images.get_shape().as_list()[:2]
-      patch_dim = 32
-      self.num_patches = (width // patch_dim) * (height // patch_dim)
-
-      # construct input and target sequence, duplicate to match num patches
-      input_length = tf.shape(input_feed)[0] - 1 # TODO: add start and end characters instead of truncating
-      input_seqs = tf.slice(input_feed, [0], [input_length])
-      self.target_seqs = tf.slice(input_feed, [1], [input_length])
-      input_seqs = tf.tile(tf.expand_dims(input_seqs,0), [self.num_patches, 1])
-      self.target_seqs = tf.tile(tf.expand_dims(self.target_seqs, 0), [self.num_patches, 1])
-      print("target_seqs: ", self.target_seqs)     
-
-      # Process image and insert batch dimensions.
-      images = tf.expand_dims(images, 0)
-      ksizes = [1, patch_dim, patch_dim, 1]
-      images = tf.extract_image_patches(images, ksizes=ksizes, strides=ksizes,
-                                        rates=[1, 1, 1, 1], padding='VALID')
-      images = tf.reshape(images,[-1, patch_dim, patch_dim, 3])
-      paddings = tf.constant([[0,0],[0,width-patch_dim],[0,height-patch_dim],[0,0]], dtype='int32')
-      images = tf.pad(images, paddings)
-      print("images: ", images)
-      input_mask = None
-    elif self.mode == "gradcam":
+    if self.mode == "gradcam":
       image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
       images = self.process_image(image_feed)
       input_feed = tf.placeholder(dtype=tf.int64, shape=[None], name="input_feed")
       # image is a Tensor of shape [height, width, channels] 
       # caption is a 1-D Tensor of any length
-      self.config.batch_size = 1
+      self.config.batch_size = 1 
       queue_capacity = (2 * self.config.num_preprocess_threads * self.config.batch_size)
 
       num_queues = 1
@@ -211,6 +181,46 @@ class ShowAndTellModel(object):
       self.target_seqs = all_target_seqs 
       self.input_mask = all_input_masks 
       self.num_parallel_batches = 1    
+    elif self.mode == "saliency":
+#      import pdb; pdb.set_trace()
+      image_feed = tf.placeholder(dtype=tf.string, shape=[None], name="image_feed")
+      images = []
+      for i in range(2):
+        images.append(self.process_image(image_feed[i]))
+      input_feed = tf.placeholder(dtype=tf.int64, shape=[None], name="input_feed")
+      # image is a Tensor of shape [height, width, channels] 
+      # caption is a 1-D Tensor of any length
+      self.config.batch_size = 2 
+      queue_capacity = (2 * self.config.num_preprocess_threads * self.config.batch_size)
+
+      images_and_captions = []
+      for i in range(2):
+        images_and_captions.append([images[i], input_feed])
+
+      num_queues = 1
+      all_images = []
+      all_input_seqs = []
+      all_target_seqs = []
+      all_input_masks = []
+      enqueue_list = input_ops.batch_with_dynamic_pad(
+                                               images_and_captions,
+                                               batch_size=self.config.batch_size,
+                                               queue_capacity=queue_capacity,
+                                               return_enqueue_list = True)
+      for i in range(2):
+        all_images.append(tf.expand_dims(enqueue_list[i][0],0))
+        all_input_seqs.append(tf.expand_dims(enqueue_list[i][1],0))
+        all_target_seqs.append(tf.expand_dims(enqueue_list[i][2],0))
+        all_input_masks.append(tf.expand_dims(enqueue_list[i][3],0))
+#        all_images.append(enqueue_list[0])
+#        all_input_seqs.append(enqueue_list[1])
+#        all_target_seqs.append(enqueue_list[2])
+#        all_input_masks.append(enqueue_list[3])
+
+      self.target_seqs = [tf.concat(all_target_seqs, 0)]
+      self.input_mask = [tf.concat(all_input_masks, 0) ]
+      self.num_parallel_batches = 1    
+      all_input_seqs = [tf.concat(all_input_seqs, 0)]
     elif self.mode == "inference":
       # In inference mode, images and inputs are fed via placeholders.
       image_feed = tf.placeholder(dtype=tf.string, shape=[], name="image_feed")
@@ -414,14 +424,6 @@ class ShowAndTellModel(object):
         
         lstm_outputs = [lstm_outputs]
 
-      elif self.mode == "saliency":
-        # Run the batch of sequence embeddings through the LSTM.
-        
-        lstm_outputs, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
-                                            inputs=self.seq_embeddings,
-                                            initial_state=initial_state,
-                                            dtype=tf.float32,
-                                            scope=lstm_scope)        
       else: # including gradcam
         # Run the batch of sequence embeddings through the LSTM.
         lstm_outputs = []
@@ -451,8 +453,10 @@ class ShowAndTellModel(object):
     if self.mode == "inference":
       tf.nn.softmax(logits[0], name="softmax")
     elif self.mode == "saliency":
-      targets = tf.reshape(self.target_seqs, [-1])
-      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets, logits=logits)
+      tf.nn.softmax(logits[0], name="softmax")
+      targets_reshape = [tf.reshape(target, [-1]) for target in self.target_seqs]      
+      logits_reshape = [tf.reshape(logit, [-1, 12000]) for logit in logits]
+      loss = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape, logits=logits_reshape)
       print("loss :", loss)
       self.target_cross_entropy_losses = loss
     elif self.mode == "gradcam":

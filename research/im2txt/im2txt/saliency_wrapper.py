@@ -48,21 +48,22 @@ def transparent_cmap(cmap, N=255):
   mycmap._lut[:,-1] = np.linspace(0, 0.8, N+4)
   return mycmap
 
-class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
+class SaliencyWrapper(inference_wrapper_base.InferenceWrapperBase):
   """Model wrapper class for performing inference with a ShowAndTellModel."""
 
   def __init__(self):
-    super(GradCamWrapper, self).__init__()
+    super(SaliencyWrapper, self).__init__()
 
   def build_model(self, model_config):
-    model = show_and_tell_model.ShowAndTellModel(model_config, mode="gradcam")
+    model = show_and_tell_model.ShowAndTellModel(model_config, mode="saliency")
     model.build()
     return model
 
 
-  def process_image(self, sess, encoded_image, input_feed, word_index=1):
+  def process_image(self, sess, encoded_image, input_feed, filename, vocab, word_index=1, word_id=None, save_path=None):
     graph = tf.get_default_graph()
-    softmax = sess.run(fetches=["softmax:0"], feed_dict={"image_feed:0": encoded_image, "input_feed:0": input_feed})
+    softmax = sess.run(fetches=["softmax:0"], feed_dict={"image_feed:0": [encoded_image, encoded_image], "input_feed:0": input_feed})
+    import pdb; pdb.set_trace()
     logits = graph.get_tensor_by_name('softmax:0')
     neuron_selector = tf.placeholder(tf.int32)
     neuron_pred = logits[0,word_index][neuron_selector]        
