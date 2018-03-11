@@ -38,7 +38,6 @@ except:
     import inputs as input_ops
 
 from inference_utils import vocabulary
-import pdb; pdb.set_trace()
 
 vocab = 'im2txt/data/word_counts_fresh.txt'
 try:
@@ -190,17 +189,17 @@ class ShowAndTellModel(object):
     elif self.mode == "saliency":
 #      import pdb; pdb.set_trace()
       image_feed = tf.placeholder(dtype=tf.string, shape=[None], name="image_feed")
+
       images = []
-      for i in range(2):
+      for i in range(self.config.batch_size):
         images.append(self.process_image(image_feed[i]))
       input_feed = tf.placeholder(dtype=tf.int64, shape=[None], name="input_feed")
       # image is a Tensor of shape [height, width, channels] 
       # caption is a 1-D Tensor of any length
-      self.config.batch_size = 2 
       queue_capacity = (2 * self.config.num_preprocess_threads * self.config.batch_size)
 
       images_and_captions = []
-      for i in range(2):
+      for i in range(self.config.batch_size):
         images_and_captions.append([images[i], input_feed])
 
       num_queues = 1
@@ -213,7 +212,7 @@ class ShowAndTellModel(object):
                                                batch_size=self.config.batch_size,
                                                queue_capacity=queue_capacity,
                                                return_enqueue_list = True)
-      for i in range(2):
+      for i in range(self.config.batch_size):
         all_images.append(tf.expand_dims(enqueue_list[i][0],0))
         all_input_seqs.append(tf.expand_dims(enqueue_list[i][1],0))
         all_target_seqs.append(tf.expand_dims(enqueue_list[i][2],0))

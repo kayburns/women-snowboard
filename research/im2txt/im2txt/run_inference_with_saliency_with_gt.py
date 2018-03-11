@@ -55,8 +55,6 @@ tf.logging.set_verbosity(tf.logging.INFO)
 def main(_):
   # Build the inference graph.
   g = tf.Graph()
-  import pdb
-  pdb.set_trace()
   with g.as_default():
     model = saliency_wrapper.SaliencyWrapper()
     restore_fn = model.build_graph_from_config(configuration.ModelConfig(),
@@ -99,6 +97,7 @@ def main(_):
     # Load the model from checkpoint.
     restore_fn(sess)
 
+    mask_dir = 'tmp/'
     if not os.path.exists(mask_dir):
         os.makedirs(mask_dir)
     
@@ -108,50 +107,46 @@ def main(_):
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
       original_filename = '/data1/coco/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
-      generate_image_masks(original_file_name, mask_dir)
-      mask_filenames = glob.glob('masks/*')
+      generate_image_masks(original_filename, mask_dir)
+      mask_filenames = sorted(glob.glob('%s/*' %mask_dir))
 
       # loop over all masked images
+      images = []
       for filename in mask_filenames: 
           with tf.gfile.GFile(filename, "r") as f:
             image = f.read()
+            images.append(image)
           if image_id not in json_dict:        
             assert(False)
-          caption = json_dict[image_id]
-          print(caption)
-          if caption[-1] == '.':
-            caption = caption[0:-1]      
-          tokens = caption.split(' ')
-          tokens.insert(0, '<S>')
-          encoded_tokens = [vocab.word_to_id(w) for w in tokens]
-          man_ids = [i for i, c in enumerate(encoded_tokens) if c == man_id]
-          woman_ids = [i for i, c in enumerate(encoded_tokens) if c == woman_id]
-          person_ids = [i for i, c in enumerate(encoded_tokens) if c == person_id]
-          if not (man_ids or woman_ids or person_ids):
-            assert(False)
+      caption = json_dict[image_id]
+      print(caption)
+      if caption[-1] == '.':
+        caption = caption[0:-1]      
+      tokens = caption.split(' ')
+      tokens.insert(0, '<S>')
+      encoded_tokens = [vocab.word_to_id(w) for w in tokens]
+      man_ids = [i for i, c in enumerate(encoded_tokens) if c == man_id]
+      woman_ids = [i for i, c in enumerate(encoded_tokens) if c == woman_id]
+      if not (man_ids or woman_ids):
+        assert(False)
+      else:
+        for wid in man_ids: 
+          if FLAGS.save_path != "":
+           save_path_pre = save_path + '/' + "%06d" % (global_index) + '_'
           else:
-            for wid in man_ids: 
-              if FLAGS.save_path != "":
-               save_path_pre = save_path + '/' + "%06d" % (global_index) + '_'
-              else:
-               save_path_pre = ""
-              model.process_image(sess, image, encoded_tokens, filename, vocab, word_index=wid-1, word_id=man_id, save_path=save_path_pre)
-              global_index += 1
-            for wid in woman_ids: 
-              if FLAGS.save_path != "":
-                save_path_pre = save_path + '/' + "%06d" % (global_index) + '_'
-              else:
-                save_path_pre = ""
-              model.process_image(sess, image, encoded_tokens, filename, vocab, word_index=wid-1, word_id=woman_id, save_path=save_path_pre)
-              global_index += 1
-    #        for wid in person_ids: 
-    #          if FLAGS.save_path != "":
-    #            save_path_pre = save_path + '/' + "%06d" % (global_index) + '_'
-    #          else:
-    #            save_path_pre = ""
-              model.process_image(sess, image, encoded_tokens, filename, vocab, word_index=wid-1, word_id=person_id, save_path=save_path_pre)
-              global_index += 1
-      os.remove(mask_filenames)
+           save_path_pre = ""
+          model.process_image(sess, images, encoded_tokens, original_filename, mask_filenames, vocab, word_index=wid-1, word_id=man_id, save_path=save_path_pre)
+          global_index += 1
+        
+        for wid in woman_ids: 
+          if FLAGS.save_path != "":
+            save_path_pre = save_path + '/' + "%06d" % (global_index) + '_'
+          else:
+            save_path_pre = ""
+          model.process_image(sess, images, encoded_tokens, original_filename, mask_filenames, vocab, word_index=wid-1, word_id=woman_id, save_path=save_path_pre)
+          global_index += 1
+      for filename in mask_filenames:
+          os.remove(filename)
       import gc
       gc.collect()
 
