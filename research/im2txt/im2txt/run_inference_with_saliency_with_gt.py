@@ -45,6 +45,7 @@ tf.flags.DEFINE_string("checkpoint_path", "",
                        "Model checkpoint file or directory containing a "
                        "model checkpoint file.")
 tf.flags.DEFINE_string("vocab_file", "", "Text file containing the vocabulary.")
+tf.flags.DEFINE_integer("mask_size", 32, "Size of the mask.")
 tf.flags.DEFINE_string("dump_file", "", "Text file containing the vocabulary.")
 tf.flags.DEFINE_string("model_name", "", "Model name equivalebt to the JSON prediction file.")
 tf.flags.DEFINE_string("img_path", "", "Text file containing image IDs.")
@@ -97,9 +98,9 @@ def main(_):
     # Load the model from checkpoint.
     restore_fn(sess)
 
-    mask_dir = 'tmp/'
-    if not os.path.exists(mask_dir):
-        os.makedirs(mask_dir)
+    mask_dir_base = '/data2/caption-bias/mask-out-ims/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
+    if not os.path.exists(mask_dir_base):
+        os.makedirs(mask_dir_base)
     
     global_index = 0
     for i, image_id in enumerate(image_ids):
@@ -107,7 +108,10 @@ def main(_):
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
       original_filename = '/data1/coco/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
-      generate_image_masks(original_filename, mask_dir)
+      mask_dir = '%s/%s/' %(mask_dir_base, image_id)
+      if not os.path.exists(mask_dir):
+          os.makedirs(mask_dir)
+      generate_image_masks(original_filename, mask_dir, FLAGS.mask_size)
       mask_filenames = sorted(glob.glob('%s/*' %mask_dir))
 
       # loop over all masked images
@@ -145,8 +149,8 @@ def main(_):
             save_path_pre = ""
           model.process_image(sess, images, encoded_tokens, original_filename, mask_filenames, vocab, word_index=wid-1, word_id=woman_id, save_path=save_path_pre)
           global_index += 1
-      for filename in mask_filenames:
-          os.remove(filename)
+#      for filename in mask_filenames:
+#          os.remove(filename)
       import gc
       gc.collect()
 

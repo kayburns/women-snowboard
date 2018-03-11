@@ -93,7 +93,8 @@ class SaliencyWrapper(inference_wrapper_base.InferenceWrapperBase):
     h = im_resized.shape[1]
     y, x = np.mgrid[0:h, 0:w]
     saliency =  (saliency - np.min(saliency)) / (np.max(saliency) - np.min(saliency)) 
-    saliency = saliency.reshape((10, 10))
+    s = int(np.sqrt(saliency.shape[0]))
+    saliency = saliency.reshape((s,s))
     saliency_resized = scipy.misc.imresize(saliency, (w, h), interp='bilinear', mode='F')   
     mycmap = transparent_cmap(plt.cm.jet)
     fig, ax = plt.subplots(1, 1)

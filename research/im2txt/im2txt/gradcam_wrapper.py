@@ -80,6 +80,8 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     from grad_cam import GradCam
     grad_cam = GradCam(graph, sess, neuron_pred, graph.get_tensor_by_name('concat:0'), conv_layer = graph.get_tensor_by_name('InceptionV3/InceptionV3/Mixed_7c/concat:0'))
 
+
+    #START VISUALIZATION
     input_image = PIL.Image.open(filename)
     input_image = input_image.convert('RGB')
     
@@ -103,6 +105,7 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     vmin = np.min(grad_mask_2d_upscaled)
     mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
 
+    #START VISUALIZATION
     fig, ax = plt.subplots(1, 1)
     plt.axis('off')
     ax.imshow( ((im_resized + 1.0) * 127.5)/255.0)
