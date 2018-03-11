@@ -23,7 +23,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
+import sys
 import tensorflow as tf
 
 try:
@@ -31,7 +31,6 @@ try:
     from im2txt.ops import image_processing
     from im2txt.ops import inputs as input_ops
 except:
-    import sys
     sys.path.append('im2txt/ops/')
     sys.path.append('inference_utils/')
     import image_embedding
