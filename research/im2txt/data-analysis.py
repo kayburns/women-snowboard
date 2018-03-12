@@ -8,6 +8,9 @@ import json
 import os
 import nltk
 
+save_file = sys.argv[1]
+print("Running analysis for file ", save_file)
+
 #json file for annotations for entire set
 
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/baseline.json'
@@ -21,14 +24,15 @@ import nltk
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json'
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/train_fine_tune_incep_bias_split-blocked-ims.json'
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json'
-save_file = '/data2/kaylee/caption_bias/models/research/im2txt/captions/confusiont_quotient_UW.json'
+#save_file = '/data2/kaylee/caption_bias/models/research/im2txt/captions/confusiont_quotient_UW.json'
+#save_file = '/data2/kaylee/caption_bias/models/research/im2txt/captions/train_blocked_ce.json'
 predicted_captions = json.load(open(save_file))
 
 coco = COCO('/data1/caption_bias/models/research/im2txt/coco-caption/annotations/captions_val2014.json')
 generation_coco = coco.loadRes(save_file)
 coco_evaluator = COCOEvalCap(coco, generation_coco)
 print "Evaluation over the entire MSCOCO set:"
-coco_evaluator.evaluate()
+#coco_evaluator.evaluate()
 
 print "Evaluation over the biased set:"
 
@@ -41,6 +45,19 @@ img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_test))))
 img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_val))))
 
 caption_ids = set([cap['image_id'] for cap in predicted_captions])
+
+# find ids in confident subset
+confident_subset_ids = []
+man_confident_ids = '/data2/anja/xai/captions/val-confident-man-500.txt'
+woman_confident_ids = '/data2/anja/xai/captions/val-confident-woman-500.txt'
+
+with open(woman_confident_ids) as f:
+   confident_subset_ids = f.readlines()
+with open(man_confident_ids) as f:
+   confident_subset_ids += f.readlines()
+
+confident_subset_ids = [int(img_id) for img_id in confident_subset_ids]
+print("ONLY EVALUATING ON CONFIDENT SUBSET")
 
 img_2_anno_dict_simple = {}
 for key, value in img_2_anno_dict.iteritems():
@@ -73,7 +90,7 @@ coco_evaluator = COCOEvalCap(coco, generation_coco)
 coco_evaluator.params['image_id'] = generation_coco.getImgIds()
 
 print "Evaluation over the biased MSCOCO set:"
-coco_evaluator.evaluate()
+#coco_evaluator.evaluate()
 
 #Get F1 scores for man/woman + some eval preprocessing
 
@@ -122,6 +139,8 @@ def accuracy(predicted, man_word_list=['man'], woman_word_list=['woman']):
     
     for prediction in predicted:
         image_id = prediction['image_id']
+        #if image_id not in confident_subset_ids:
+        #   continue
         male = img_2_anno_dict_simple[image_id]['male']
         female = img_2_anno_dict_simple[image_id]['female']
         #pred_male = classified_as_man(prediction['caption'].split(' '))
@@ -162,11 +181,15 @@ def accuracy(predicted, man_word_list=['man'], woman_word_list=['woman']):
     print "Man predicted %f percent." %(m_fp/f_total)
     print "Woman predicted %f percent." %(f_tp/f_total)
     print "Other predicted %f percent." %(f_other/f_total)
+    print "%f	%f	%f" % (m_fp/f_total, f_tp/f_total, f_other/f_total)
     
     print "Of male images:"
     print "Man predicted %f percent." %(m_tp/m_total)
     print "Woman predicted %f percent." %(f_fp/m_total)
     print "Other predicted %f percent." %(m_other/m_total)
+    print "%f	%f	%f"% (m_tp/m_total, f_fp/m_total, m_other/m_total)
+
+    print "ratio", float(f_tp + f_fp)/(m_tp + m_fp)
 
     pred_images = {}
     pred_images['male_pred_male'] = male_pred_male
@@ -181,24 +204,24 @@ def accuracy(predicted, man_word_list=['man'], woman_word_list=['woman']):
 predicted_all = json.load(open(save_file))
 predicted = [p for p in predicted_all if p['image_id'] in img_2_anno_dict_simple]
 
-#pred_images = accuracy(predicted, man_word_list_synonyms, woman_word_list_synonyms)
-pred_images = accuracy(predicted)
+pred_images = accuracy(predicted, man_word_list_synonyms, woman_word_list_synonyms)
+#pred_images = accuracy(predicted)
 
 #over confident set
 
-confident_man = open('/home/lisaanne/lev/data2/caption-bias/dataset-splits/val-confident-man.txt').readlines()
+confident_man = open('/data2/caption-bias/dataset-splits/val-confident-man.txt').readlines()
 confident_man = [int(c.strip()) for c in confident_man]
-confident_woman = open('/home/lisaanne/lev/data2/caption-bias/dataset-splits/val-confident-woman.txt').readlines()
+confident_woman = open('/data2/caption-bias/dataset-splits/val-confident-woman.txt').readlines()
 confident_woman = [int(c.strip()) for c in confident_woman]
 confident_ims = set(confident_man + confident_woman)
 predicted_confident = [p for p in predicted if p['image_id'] in confident_ims]
 print "\nOver confident set"
-tmp = accuracy(predicted_confident)
+tmp = accuracy(predicted_confident, man_word_list_synonyms, woman_word_list_synonyms)
 
 #over NOT confident set
 print "\nOver not confident set"
 predicted_not_confident = [p for p in predicted if p['image_id'] not in confident_ims]
-tmp = accuracy(predicted_not_confident)
+tmp = accuracy(predicted_not_confident, man_word_list_synonyms, woman_word_list_synonyms)
 
 
 #Analysis of "other" sentences
