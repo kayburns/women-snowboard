@@ -126,12 +126,14 @@ def main(_):
       print(caption)
       if caption[-1] == '.':
         caption = caption[0:-1]      
+      caption = caption.lower()
       tokens = caption.split(' ')
       tokens.insert(0, '<S>')
       encoded_tokens = [vocab.word_to_id(w) for w in tokens]
       man_ids = [i for i, c in enumerate(encoded_tokens) if c == man_id]
       woman_ids = [i for i, c in enumerate(encoded_tokens) if c == woman_id]
       if not (man_ids or woman_ids):
+        import pdb; pdb.set_trace()
         assert(False)
       else:
         for wid in man_ids: 
