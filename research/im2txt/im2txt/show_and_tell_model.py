@@ -39,7 +39,7 @@ except:
 
 from inference_utils import vocabulary
 
-vocab = 'im2txt/data/word_counts_fresh.txt'
+vocab_file = 'im2txt/data/word_counts_fresh.txt'
 try:
     vocab = vocabulary.Vocabulary(vocab_file)
 except:
