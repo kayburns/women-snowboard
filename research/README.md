@@ -30,7 +30,7 @@ blocked_image_ce_weight:  Weight for blocked image ce loss
 
 confusion_word_non_blocked_weight:  Weight for confident loss.
 
-confusion_word_non_blocked_type: Type for confident loss. 
+confusion_word_non_blocked_type: Type for confident loss (we use type quotient for our ECCV experiments). 
 
 
 ## Running GradCam
