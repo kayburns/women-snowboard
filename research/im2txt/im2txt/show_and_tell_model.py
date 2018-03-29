@@ -243,7 +243,7 @@ class ShowAndTellModel(object):
       self.num_parallel_batches = 1 
     else:
       # Prefetch serialized SequenceExample protos.
-      input_queues = []
+      input_queues = []  #input queues is a list so we can easily handle data from other tfrecord files
       input_queue = input_ops.prefetch_input_data(
           self.reader,
           self.config.input_file_pattern,
@@ -432,7 +432,7 @@ class ShowAndTellModel(object):
       else: # including gradcam
         # Run the batch of sequence embeddings through the LSTM.
         lstm_outputs = []
-        for i in range(self.num_parallel_batches):
+        for i in range(self.num_parallel_batches):  #looping over input queues
             sequence_length = tf.reduce_sum(self.input_mask[i], 1)
             lstm_output, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
                                                 inputs=self.seq_embeddings[i],
@@ -444,7 +444,7 @@ class ShowAndTellModel(object):
     with tf.variable_scope("logits", reuse=tf.AUTO_REUSE) as logits_scope:
       logits = []
       tf.get_variable_scope().reuse_variables()
-      for lstm_output in lstm_outputs:
+      for lstm_output in lstm_outputs:  #loop over lstm outputs; remember, there can be multiple input queues which means multiple lstm outputs!
           logit = tf.contrib.layers.fully_connected(
               inputs=lstm_output,
               num_outputs=self.config.vocab_size,
@@ -485,6 +485,7 @@ class ShowAndTellModel(object):
       tf.losses.add_loss(batch_loss)
 
 
+      #need to compute cross entropy loss for both input queues
       if self.flags['two_input_queues']:
           losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
                                                                   logits=logits_reshape[1])
