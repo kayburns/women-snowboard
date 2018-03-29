@@ -1,5 +1,9 @@
+import json
+import nltk
+
 man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
 woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
+
 
 def is_gendered(words, gender_type='woman', man_word_list=['man'], woman_word_list=['woman']):
     m = False
@@ -12,7 +16,7 @@ def is_gendered(words, gender_type='woman', man_word_list=['man'], woman_word_li
         f = True
     if m & f:
         return False
-    elif m & check_m:
+    if m & check_m:
         return True
     elif f & check_f:
         return True
@@ -26,8 +30,98 @@ def format_gt_captions(gt_file):
         gt_caps.append({'image_id': annotation['image_id'], 'caption': annotation['caption']})
     return gt_caps
 
-#caption paths
+def accuracy(predicted, man_word_list=['man'], woman_word_list=['woman'], img_2_anno_dict_simple=None):
+    f_tp = 0.
+    f_fp = 0.
+    f_tn = 0.
+    f_other = 0.
+    f_total = 0.
+    
+    
+    m_tp = 0.
+    m_fp = 0.
+    m_tn = 0.
+    m_other = 0.
+    m_total = 0.
+    
+    male_pred_female = []
+    female_pred_male = []
+    male_pred_male = []
+    female_pred_female = []
+    male_pred_other = []
+    female_pred_other = []
+    
+    for prediction in predicted:
+        image_id = prediction['image_id']
+        #if image_id not in confident_subset_ids:
+        #   continue
+        male = img_2_anno_dict_simple[image_id]['male']
+        female = img_2_anno_dict_simple[image_id]['female']
+        #pred_male = classified_as_man(prediction['caption'].split(' '))
+        #pred_female = classified_as_woman(prediction['caption'].split(' '))
+        sentence_words = nltk.word_tokenize(prediction['caption'].lower())
+        pred_male = is_gendered(sentence_words, 'man', man_word_list, woman_word_list)
+        pred_female = is_gendered(sentence_words, 'woman', man_word_list, woman_word_list)
 
+        if (female & pred_female):
+            f_tp += 1
+            female_pred_female.append(prediction)
+        if (male & pred_male):
+            m_tp += 1
+            male_pred_male.append(prediction)
+        if (male & pred_female):
+            f_fp += 1
+            male_pred_female.append(prediction)
+        if (female & pred_male):
+            m_fp += 1
+            female_pred_male.append(prediction)
+        if ((not female) & (not pred_female)):
+            f_tn += 1
+        if ((not male) & (not pred_male)):
+            m_tn += 1
+        pred_other = (not pred_male) & (not pred_female)
+        if (female & pred_other):
+            f_other += 1
+            female_pred_other.append(prediction)
+        if (male & pred_other):
+            m_other += 1
+            male_pred_other.append(prediction)
+        if female:
+            f_total += 1
+        if male:
+            m_total += 1
+    
+    print "Of female images:"
+    print "Man predicted %f percent." %(m_fp/f_total)
+    print "Woman predicted %f percent." %(f_tp/f_total)
+    print "Other predicted %f percent." %(f_other/f_total)
+    print "%f	%f	%f" % (m_fp/f_total, f_tp/f_total, f_other/f_total)
+    
+    print "Of male images:"
+    print "Man predicted %f percent." %(m_tp/m_total)
+    print "Woman predicted %f percent." %(f_fp/m_total)
+    print "Other predicted %f percent." %(m_other/m_total)
+    print "%f	%f	%f"% (m_tp/m_total, f_fp/m_total, m_other/m_total)
+
+    print "Of total:"
+    print "Correct %f percent." %((m_tp+f_tp)/(m_total+f_total))
+    print "Incorect %f percent." %((m_fp+f_fp)/(m_total+f_total))
+    print "Other predicted %f percent." %((f_other+m_other)/(m_total+f_total))
+    print "%f	%f	%f"% ((m_tp+f_tp)/(m_total+f_total), (m_fp+f_fp)/(m_total+f_total), (m_other+f_other)/(f_total+m_total))
+
+    print "ratio", float(f_tp + f_fp)/(m_tp + m_fp)
+    pred_images = {}
+    pred_images['male_pred_male'] = male_pred_male
+    pred_images['female_pred_female'] = female_pred_female
+    pred_images['female_pred_male'] = female_pred_male
+    pred_images['male_pred_female'] = male_pred_female
+    pred_images['male_pred_other'] = male_pred_other
+    pred_images['female_pred_other'] = female_pred_other
+    
+    return pred_images
+
+#caption paths
+#all models
 caption_paths = []
 base_dir = '/home/lisaanne/lev/'
 normal_training = ('normal training', base_dir + '/data1/caption_bias/models/research/im2txt/val_cap.json')
@@ -55,9 +149,17 @@ caption_paths.append(quotient)
 quotient_uw = ('quotient UW', base_dir +'/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_UW_10_500k_caps.json')
 caption_paths.append(quotient_uw)
 
-
-
-
-
-
-
+#caption_paths = []
+#base_dir = '/home/lisaanne/lev/'
+#baseline_ft_inception = ('baseline ft inception', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/ft_incep_captions_500k_bias_split.json')
+#caption_paths.append(baseline_ft_inception)
+#uw = ('uw 10x', base_dir + '/data2/caption-bias/result_jsons/LW10_ft-inception-fresh.json')
+#caption_paths.append(uw)
+#balanced = ('balanced', base_dir + '/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json')
+#caption_paths.append(balanced)
+#acl = ('acl', base_dir + '/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json')
+#caption_paths.append(acl)
+#acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
+#caption_paths.append(acl_conq)
+#quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
+#caption_paths.append(quotient)

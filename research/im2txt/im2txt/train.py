@@ -34,9 +34,9 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.flags.DEFINE_string("input_file_pattern", "",
                        "File pattern of sharded TFRecord input files.")
-tf.flags.DEFINE_string("input_file_pattern2", None,
+tf.flags.DEFINE_string("input_file_pattern2", None,  #path for an additional set of images; used to train balanced model
                        "File pattern of sharded TFRecord input files.")
-tf.flags.DEFINE_string("blocked_input_file_pattern", "", #new flag
+tf.flags.DEFINE_string("blocked_input_file_pattern", "", #path to blocked images.  Needed for all models which include the appearance confusion loss
                        "File pattern of sharded TFRecord input files.")
 tf.flags.DEFINE_string("inception_checkpoint_file", "",
                        "Path to a pretrained inception_v3 model.")
@@ -47,7 +47,7 @@ tf.flags.DEFINE_boolean("train_inception", False,
 tf.flags.DEFINE_boolean("debug", False,
                         "If the model should be run in debug mode.")
 tf.flags.DEFINE_integer("number_of_steps", 1000000, "Number of training steps.")
-tf.flags.DEFINE_integer("batch_size", 32, "size of batch")
+tf.flags.DEFINE_integer("batch_size", 32, "size of batch")  #This code will throw an error if you do not use batch size of 32 (fix inception network) or a batch size of 8 (train through inception network).
 tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
 tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters.")   
