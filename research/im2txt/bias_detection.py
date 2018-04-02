@@ -1,3 +1,7 @@
+'''
+Helper code to process men also like shopping annotations and some data analysis.
+'''
+
 import pickle
 import csv
 from collections import defaultdict

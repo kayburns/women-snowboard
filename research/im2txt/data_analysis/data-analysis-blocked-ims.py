@@ -1,3 +1,7 @@
+'''
+Code to do analysis on blocked images.
+'''
+
 import json
 from data_analysis_common import *
 import pdb
@@ -48,7 +52,7 @@ def blocked_ratios(predictions):
         else:
             other_count+= 1
 
-    print "Persents:"
+    print "Percents:"
     print "Man: %d/%d (%f)." %(man_count, len(predictions), man_count/len(predictions))
     print "Woman: %d/%d (%f)." %(woman_count, len(predictions), woman_count/len(predictions))
     print "Other: %d/%d (%f)." %(other_count, len(predictions), other_count/len(predictions))

@@ -1,3 +1,7 @@
+'''
+Analysis on ``types'' of other sentences that are found in descriptions.
+'''
+
 import sys
 import json
 from data_analysis_common import *

@@ -1,3 +1,7 @@
+'''
+Basic data analysis: Can be used to get error and ratio for different sets of captions.
+'''
+
 import sys
 import json
 from data_analysis_common import *

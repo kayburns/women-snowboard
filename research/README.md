@@ -43,12 +43,15 @@ TODO for Lisa/Kaylee
 
 ## Running Data Analysis
 
-TODO for Lisa/Kaylee
+See the folder im2txt/data_analysis for data analysis scripts.
 
 ## Auxiliary Scripts
 
-Creating blocked images: TODO for Lisa
+Creating blocked images: scripts/SegmentationMasks.ipynb
 
 Creating gt segmentation masks: TODO for Anja
 
-Creation of different subsets: TODO for Lisa/Anja
+Creation of different subsets:
+
+To create "confident subset", see scripts/make_confident_set.py
+For amplification bias of diccerent nouns, see "find_bigrams.py" 

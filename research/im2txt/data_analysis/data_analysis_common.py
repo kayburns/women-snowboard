@@ -1,3 +1,7 @@
+'''
+Common code shared across data analysis scripts.
+'''
+
 import json
 import nltk
 

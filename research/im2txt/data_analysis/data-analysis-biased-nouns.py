@@ -1,3 +1,7 @@
+'''
+Code to run eval for sentences which include specific nouns.
+'''
+
 import sys
 import json
 from data_analysis_common import *

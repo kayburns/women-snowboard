@@ -1,3 +1,7 @@
+'''
+To analyze the number of ''other'' sentences in ground truth sentences. 
+'''
+
 from data_analysis_common import *
 from bias_detection import *
 
