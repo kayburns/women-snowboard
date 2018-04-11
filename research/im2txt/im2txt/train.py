@@ -108,9 +108,12 @@ def main(unused_argv):
   g = tf.Graph()
   with g.as_default():
     # Build the model.
-    flag_dict = {}
-    for key in FLAGS.__flags.keys():
-        flag_dict[key] = FLAGS.__flags[key].value
+    if not isinstance(FLAGS.__flags['init_from'], str):  #Tensorflow likes to change random things for different releases.  One random thing it likes to change is FLAGS.  This code takes care of that *sight*
+        flag_dict = {}
+        for key in FLAGS.__flags.keys():
+            flag_dict[key] = FLAGS.__flags[key].value
+    else:
+        flag_dict = FLAGS.__flags
 
     model = show_and_tell_model.ShowAndTellModel(
         model_config, mode="train", train_inception=FLAGS.train_inception,
