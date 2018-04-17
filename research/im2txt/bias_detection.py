@@ -589,6 +589,19 @@ train_caption_file = 'train_captions_fine_tune_2.txt'
 
 id2object = {0: 'toilet', 1: 'teddy_bear', 2: 'sports_ball', 3: 'bicycle', 4: 'kite', 5: 'skis', 6: 'tennis_racket', 7: 'donut', 8: 'snowboard', 9: 'sandwich', 10: 'motorcycle', 11: 'oven', 12: 'keyboard', 13: 'scissors', 14: 'chair', 15: 'couch', 16: 'mouse', 17: 'clock', 18: 'boat', 19: 'apple', 20: 'sheep', 21: 'horse', 22: 'giraffe', 23: 'person', 24: 'tv', 25: 'stop_sign', 26: 'toaster', 27: 'bowl', 28: 'microwave', 29: 'bench', 30: 'fire_hydrant', 31: 'book', 32: 'elephant', 33: 'orange', 34: 'tie', 35: 'banana', 36: 'knife', 37: 'pizza', 38: 'fork', 39: 'hair_drier', 40: 'frisbee', 41: 'umbrella', 42: 'bottle', 43: 'bus', 44: 'zebra', 45: 'bear', 46: 'vase', 47: 'toothbrush', 48: 'spoon', 49: 'train', 50: 'airplane', 51: 'potted_plant', 52: 'handbag', 53: 'cell_phone', 54: 'traffic_light', 55: 'bird', 56: 'broccoli', 57: 'refrigerator', 58: 'laptop', 59: 'remote', 60: 'surfboard', 61: 'cow', 62: 'dining_table', 63: 'hot_dog', 64: 'car', 65: 'cup', 66: 'skateboard', 67: 'dog', 68: 'bed', 69: 'cat', 70: 'baseball_glove', 71: 'carrot', 72: 'truck', 73: 'parking_meter', 74: 'suitcase', 75: 'cake', 76: 'wine_glass', 77: 'baseball_bat', 78: 'backpack', 79: 'sink'}
 
+"""Create val/test split."""
+train_set = get_image_names_from_reducing_bias(target_train)
+val_set = get_image_names_from_reducing_bias(target_val)
+test_set = get_image_names_from_reducing_bias(target_test)
+
+with open('train_set.txt', 'w') as f:
+    f.write('\n'.join(train_set))
+
+with open('val_set.txt', 'w') as f:
+    f.write('\n'.join(val_set))   
+
+with open('test_set.txt', 'w') as f:
+    f.write('\n'.join(test_set))  
 
 """Preprocessing."""
 #images_with_male_female = get_image_names_from_reducing_bias(target_train)
