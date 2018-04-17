@@ -72,7 +72,7 @@ class SaliencyWrapper(inference_wrapper_base.InferenceWrapperBase):
       if num_images < self.batch_size:
          for j in range(self.batch_size-num_images): 
            batch_images.append(encoded_images[-1]) 
-      softmax = sess.run(fetches=["softmax:0"], feed_dict={"image_feed:0": encoded_images, "input_feed:0": input_feed})
+      softmax = sess.run(fetches=["softmax:0"], feed_dict={"image_feed:0": batch_images, "input_feed:0": input_feed})
       #import pdb; pdb.set_trace()
       softmaxes[i:i+num_images, ...] = copy.deepcopy(softmax[0][:num_images,...])
 
