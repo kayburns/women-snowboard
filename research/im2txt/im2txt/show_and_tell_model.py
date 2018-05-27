@@ -43,11 +43,15 @@ vocab = 'im2txt/data/word_counts_fresh.txt'
 try:
     vocab = vocabulary.Vocabulary(vocab_file)
 except:
-    vocab_file = '/data2/kaylee/caption_bias/models/research/im2txt/im2txt/data/word_counts_fresh.txt'
+    vocab_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/im2txt/data/word_counts_fresh.txt'
     vocab = vocabulary.Vocabulary(vocab_file) 
 
-confusion_words = ['man', 'woman']
-confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
+#CHANGE FOR REBUTTAL
+#confusion_words = ['man', 'woman']
+confusion_words = [['man', 'male'], ['woman', 'female']]
+#confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
+confusion_word_idx = [[vocab.word_to_id(word) for word in confusion_word_set] for confusion_word_set in confusion_words]
+all_confusion_idx = confusion_word_idx[0] + confusion_word_idx[1] #useful for blocking
 assert len(confusion_word_idx) == 2  
 
 from PIL import Image
@@ -499,13 +503,30 @@ class ShowAndTellModel(object):
           blocked_loss_weight = tf.to_float(tf.constant(self.flags['blocked_loss_weight']))
           #write blocked weight loss
           softmaxes = tf.nn.softmax(logits[1], 2)
-          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
-          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          #CHANGE FOR REBUTTAL
+          #c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+          #c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          confusion_word_set = confusion_word_idx[0]
+          c0 = []
+          for idx in confusion_word_set:
+              c0.append(tf.gather(softmaxes, idx, axis=2))
+          c0 = tf.add_n(c0)
+
+          confusion_word_set = confusion_word_idx[1]
+          c1 = []
+          for idx in confusion_word_set:
+              c1.append(tf.gather(softmaxes, idx, axis=2))
+          c1 = tf.add_n(c1)
+
           diff = tf.abs(tf.subtract(c0, c1))
           blocked_weights = self.input_mask[1]
 
           if self.flags['blocked_weight_selective']: #select only man woman words
-              for word in confusion_word_idx:
+              #CHANGED FOR REBUTTAL
+              #for word in confusion_word_idx:
+              for word in all_confusion_idx:
                   condition = tf.equal(self.target_seqs[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
                   blocked_weights = tf.where(condition, blocked_weights, tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for confusion words
               #this value is very low; at least at the start.  Will want to consider a lamda value.
@@ -518,7 +539,9 @@ class ShowAndTellModel(object):
       if self.flags['blocked_image_ce']:
           losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
                                                                logits=logits_reshape[1])
-          for word in confusion_word_idx:
+          #CHANGED FOR REBUTTAL
+          #for word in confusion_word_idx:
+          for word in all_confusion_idx: #don't want loss any gender words
               condition = tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
               weights_reshape[1] = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
           blocked_image_ce = tf.multiply(tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
@@ -526,11 +549,26 @@ class ShowAndTellModel(object):
                              tf.to_float(tf.constant(self.flags['blocked_image_ce_weight'])),
                              name="blocked_image_ce")
           tf.losses.add_loss(blocked_image_ce)
+
       if self.flags['confusion_word_non_blocked']:
           blocked_weights = self.input_mask[0]
           softmaxes = tf.nn.softmax(logits[0], 2)
-          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
-          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          #CHANGE FOR REBUTTAL
+          #c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+          #c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          confusion_word_set = confusion_word_idx[0]
+          c0 = []
+          for idx in confusion_word_set:
+              c0.append(tf.gather(softmaxes, idx, axis=2))
+          c0 = tf.add_n(c0)
+
+          confusion_word_set = confusion_word_idx[1]
+          c1 = []
+          for idx in confusion_word_set:
+              c1.append(tf.gather(softmaxes, idx, axis=2))
+          c1 = tf.add_n(c1)
 
           if self.flags['confusion_word_non_blocked_type'] == 'subtraction': 
               confusion_losses = [tf.subtract(tf.constant(1.), tf.subtract(c0, c1)), 
@@ -548,15 +586,18 @@ class ShowAndTellModel(object):
 
           losses = []
           count = 0
-          for word, confusion_loss in zip(confusion_word_idx, confusion_losses):
-              #only want loss where man/woman *is* present in the image
-              condition = tf.equal(self.target_seqs[0], 
-                                   tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
-              blocked_weights_word = tf.where(condition, 
-                                              blocked_weights, 
-                                              tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for non-confusion words
-              
-    
+          for confusion_set, confusion_loss in zip(confusion_word_idx, confusion_losses):
+              #for word, confusion_loss in zip(confusion_word_idx, confusion_losses):
+              blocked_weights_word = blocked_weights #I AM WORRIED ABOUT THIS -- HOW DOES TF copy tensors?
+              for word_idx in confusion_set:
+                  #only want loss where man/woman *is* present in the image
+                  condition = tf.equal(self.target_seqs[0], 
+                                       tf.constant(word_idx, dtype=tf.int64)) # 0 out weights for confusion words
+                  blocked_weights_word = tf.where(condition, 
+                                                  blocked_weights_word, 
+                                                  tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for non-confusion words
+                  
+        
               blocked_weights_word = tf.to_float(blocked_weights_word)
               blocked_loss = tf.multiply(tf.reduce_sum(tf.multiply(confusion_loss, 
                                            blocked_weights_word)), 
