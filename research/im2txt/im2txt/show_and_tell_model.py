@@ -544,7 +544,7 @@ class ShowAndTellModel(object):
                                                                logits=logits_reshape[1])
           #CHANGED FOR REBUTTAL
           #for word in confusion_word_idx:
-          for word in all_confusion_idx: #don't want loss any gender words
+          for word in all_confusion_idx: #don't want loss on any gender words
               condition = tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
               weights_reshape[1] = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
           blocked_image_ce = tf.multiply(tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
@@ -589,9 +589,10 @@ class ShowAndTellModel(object):
 
           losses = []
           count = 0
+          #CHANGED FOR REBUTTAL
           for confusion_set, confusion_loss in zip(confusion_word_idx, confusion_losses):
               #for word, confusion_loss in zip(confusion_word_idx, confusion_losses):
-              blocked_weights_word = blocked_weights #I AM WORRIED ABOUT THIS -- HOW DOES TF copy tensors?
+              blocked_weights_word = blocked_weights 
               for word_idx in confusion_set:
                   #only want loss where man/woman *is* present in the image
                   condition = tf.equal(self.target_seqs[0], 
