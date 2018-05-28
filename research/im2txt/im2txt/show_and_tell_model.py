@@ -43,11 +43,18 @@ vocab_file = 'im2txt/data/word_counts_fresh.txt'
 try:
     vocab = vocabulary.Vocabulary(vocab_file)
 except:
-    vocab_file = '/data2/kaylee/caption_bias/models/research/im2txt/im2txt/data/word_counts_fresh.txt'
+    vocab_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/im2txt/data/word_counts_fresh.txt'
     vocab = vocabulary.Vocabulary(vocab_file) 
 
-confusion_words = ['man', 'woman']
-confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
+#CHANGE FOR REBUTTAL
+#confusion_words = ['man', 'woman']
+confusion_words = [['man'], ['woman']]  #run for debugging
+man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
+woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
+confusion_words = [man_word_list_synonyms, woman_word_list_synonyms] #for rebuttal experiment
+#confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
+confusion_word_idx = [[vocab.word_to_id(word) for word in confusion_word_set] for confusion_word_set in confusion_words]
+all_confusion_idx = confusion_word_idx[0] + confusion_word_idx[1] #useful for blocking
 assert len(confusion_word_idx) == 2  
 
 from PIL import Image
@@ -243,7 +250,7 @@ class ShowAndTellModel(object):
       self.num_parallel_batches = 1 
     else:
       # Prefetch serialized SequenceExample protos.
-      input_queues = []
+      input_queues = []  #input queues is a list so we can easily handle data from other tfrecord files
       input_queue = input_ops.prefetch_input_data(
           self.reader,
           self.config.input_file_pattern,
@@ -432,7 +439,7 @@ class ShowAndTellModel(object):
       else: # including gradcam
         # Run the batch of sequence embeddings through the LSTM.
         lstm_outputs = []
-        for i in range(self.num_parallel_batches):
+        for i in range(self.num_parallel_batches):  #looping over input queues
             sequence_length = tf.reduce_sum(self.input_mask[i], 1)
             lstm_output, _ = tf.nn.dynamic_rnn(cell=lstm_cell,
                                                 inputs=self.seq_embeddings[i],
@@ -444,7 +451,7 @@ class ShowAndTellModel(object):
     with tf.variable_scope("logits", reuse=tf.AUTO_REUSE) as logits_scope:
       logits = []
       tf.get_variable_scope().reuse_variables()
-      for lstm_output in lstm_outputs:
+      for lstm_output in lstm_outputs:  #loop over lstm outputs; remember, there can be multiple input queues which means multiple lstm outputs!
           logit = tf.contrib.layers.fully_connected(
               inputs=lstm_output,
               num_outputs=self.config.vocab_size,
@@ -485,6 +492,7 @@ class ShowAndTellModel(object):
       tf.losses.add_loss(batch_loss)
 
 
+      #need to compute cross entropy loss for both input queues
       if self.flags['two_input_queues']:
           losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
                                                                   logits=logits_reshape[1])
@@ -498,13 +506,30 @@ class ShowAndTellModel(object):
           blocked_loss_weight = tf.to_float(tf.constant(self.flags['blocked_loss_weight']))
           #write blocked weight loss
           softmaxes = tf.nn.softmax(logits[1], 2)
-          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
-          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          #CHANGE FOR REBUTTAL
+          #c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+          #c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          confusion_word_set = confusion_word_idx[0]
+          c0 = []
+          for idx in confusion_word_set:
+              c0.append(tf.gather(softmaxes, idx, axis=2))
+          c0 = tf.add_n(c0)
+
+          confusion_word_set = confusion_word_idx[1]
+          c1 = []
+          for idx in confusion_word_set:
+              c1.append(tf.gather(softmaxes, idx, axis=2))
+          c1 = tf.add_n(c1)
+
           diff = tf.abs(tf.subtract(c0, c1))
           blocked_weights = self.input_mask[1]
 
           if self.flags['blocked_weight_selective']: #select only man woman words
-              for word in confusion_word_idx:
+              #CHANGED FOR REBUTTAL
+              #for word in confusion_word_idx:
+              for word in all_confusion_idx:
                   condition = tf.equal(self.target_seqs[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
                   blocked_weights = tf.where(condition, blocked_weights, tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for confusion words
               #this value is very low; at least at the start.  Will want to consider a lamda value.
@@ -517,7 +542,9 @@ class ShowAndTellModel(object):
       if self.flags['blocked_image_ce']:
           losses = tf.nn.sparse_softmax_cross_entropy_with_logits(labels=targets_reshape[1],
                                                                logits=logits_reshape[1])
-          for word in confusion_word_idx:
+          #CHANGED FOR REBUTTAL
+          #for word in confusion_word_idx:
+          for word in all_confusion_idx: #don't want loss on any gender words
               condition = tf.equal(targets_reshape[1], tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
               weights_reshape[1] = tf.where(condition, tf.zeros_like(weights_reshape[1], dtype=tf.float32), weights_reshape[1]) # 0 out weights for confusion words
           blocked_image_ce = tf.multiply(tf.div(tf.reduce_sum(tf.multiply(losses, weights_reshape[1])),
@@ -525,11 +552,26 @@ class ShowAndTellModel(object):
                              tf.to_float(tf.constant(self.flags['blocked_image_ce_weight'])),
                              name="blocked_image_ce")
           tf.losses.add_loss(blocked_image_ce)
+
       if self.flags['confusion_word_non_blocked']:
           blocked_weights = self.input_mask[0]
           softmaxes = tf.nn.softmax(logits[0], 2)
-          c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
-          c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          #CHANGE FOR REBUTTAL
+          #c0 = tf.gather(softmaxes, confusion_word_idx[0], axis=2)         
+          #c1 = tf.gather(softmaxes, confusion_word_idx[1], axis=2)        
+
+          confusion_word_set = confusion_word_idx[0]
+          c0 = []
+          for idx in confusion_word_set:
+              c0.append(tf.gather(softmaxes, idx, axis=2))
+          c0 = tf.add_n(c0)
+
+          confusion_word_set = confusion_word_idx[1]
+          c1 = []
+          for idx in confusion_word_set:
+              c1.append(tf.gather(softmaxes, idx, axis=2))
+          c1 = tf.add_n(c1)
 
           if self.flags['confusion_word_non_blocked_type'] == 'subtraction': 
               confusion_losses = [tf.subtract(tf.constant(1.), tf.subtract(c0, c1)), 
@@ -547,15 +589,19 @@ class ShowAndTellModel(object):
 
           losses = []
           count = 0
-          for word, confusion_loss in zip(confusion_word_idx, confusion_losses):
-              #only want loss where man/woman *is* present in the image
-              condition = tf.equal(self.target_seqs[0], 
-                                   tf.constant(word, dtype=tf.int64)) # 0 out weights for confusion words
-              blocked_weights_word = tf.where(condition, 
-                                              blocked_weights, 
-                                              tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for non-confusion words
-              
-    
+          #CHANGED FOR REBUTTAL
+          for confusion_set, confusion_loss in zip(confusion_word_idx, confusion_losses):
+              #for word, confusion_loss in zip(confusion_word_idx, confusion_losses):
+              blocked_weights_word = blocked_weights 
+              for word_idx in confusion_set:
+                  #only want loss where man/woman *is* present in the image
+                  condition = tf.equal(self.target_seqs[0], 
+                                       tf.constant(word_idx, dtype=tf.int64)) # 0 out weights for confusion words
+                  blocked_weights_word = tf.where(condition, 
+                                                  blocked_weights_word, 
+                                                  tf.zeros_like(blocked_weights, dtype=tf.int32)) # 0 out weights for non-confusion words
+                  
+        
               blocked_weights_word = tf.to_float(blocked_weights_word)
               blocked_loss = tf.multiply(tf.reduce_sum(tf.multiply(confusion_loss, 
                                            blocked_weights_word)), 
