@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-r"""Generate captions for images using default beam search parameters."""
+"""Generate captions for images using default beam search parameters."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -44,6 +44,10 @@ tf.flags.DEFINE_string("input_files", "",
                        "File pattern or comma-separated list of file patterns "
                        "of image files.")
 tf.flags.DEFINE_string("beam_size", "3", "Beam size for beam search.")
+tf.flags.DEFINE_string("use_nn", "False", "Whether or not to use nn.")
+tf.flags.DEFINE_string("pickle_file", "", "Name of file to save data to.")
+tf.flags.DEFINE_string("train_data_dir", "", "Directory with training images.")
+tf.flags.DEFINE_string("caption_path", "", "Filepath with captions.")
 
 tf.logging.set_verbosity(tf.logging.INFO)
 
@@ -72,23 +76,28 @@ def main(_):
     # Prepare the caption generator. Here we are implicitly using the default
     # beam search parameters. See caption_generator.py for a description of the
     # available beam search parameters.
-    import pdb; pdb.set_trace()
     beam_size = int(FLAGS.beam_size)
     generator = caption_generator.CaptionGenerator(model, vocab, beam_size=beam_size)
     caption_dicts = [] 
     for i, filename in enumerate(filenames):
-      with tf.gfile.GFile(filename, "r") as f:
+      with tf.gfile.GFile(filename, "rb") as f:
         image = f.read()
-      captions = generator.beam_search(sess, image)
+      if FLAGS.use_nn:
+        captions = generator.consensus_NN(sess, image, FLAGS.caption_path, FLAGS.train_data_dir, FLAGS.pickle_file)
+      else:
+        captions = generator.beam_search(sess, image)
       image_id = int(filename.split('_')[-1].split('.')[0])
-      sentence = [vocab.id_to_word(w) for w in captions[0].sentence[1:-1]]
-      if sentence[-1] == '.':
-        sentence = sentence[:-1]
-      sentence = " ".join(sentence)
-      sentence += '.'
+      if FLAGS.use_nn:
+        sentence = captions
+      else:
+        sentence = [vocab.id_to_word(w) for w in captions[0].sentence[1:-1]]
+        if sentence[-1] == '.':
+          sentence = sentence[:-1]
+        sentence = " ".join(sentence)
+        sentence += '.'
       caption_dict = {'caption': sentence, 'image_id': image_id }
       caption_dicts.append(caption_dict)
-      sys.stdout.write('\n%d/%d: %s' %(i, len(filenames), sentence))
+      sys.stdout.write('\n%d/%d: (img %d) %s' %(i, len(filenames), image_id, sentence))
    
     with open(FLAGS.dump_file, 'w') as outfile:
       json.dump(caption_dicts, outfile)

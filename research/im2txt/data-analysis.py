@@ -15,7 +15,7 @@ for i in range(1, num_files+1)
     save_files.append(sys.argv[i])
 """
 
-eval_sentences = False
+eval_sentences = True
 #save_file = sys.argv[1]
 
 #print("Running analysis for files: ", save_file)
@@ -35,7 +35,7 @@ eval_sentences = False
 #save_file = '/home/lisaanne/lev/data2/caption-bias/result_jsons/train_fine_tune_incep_bias_split-blocked-ims.json'
 #save_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json'
 #save_file = '/data2/kaylee/caption_bias/models/research/im2txt/captions/confusiont_quotient_UW.json'
-save_file = '/data2/kaylee/caption_bias/models/research/im2txt/captions/train_blocked_ce.json'
+save_file = '/data2/kaylee/caption_bias/models/research/im2txt/nn_test.json'
 # find ids in confident subset
 confident_subset_ids = []
 man_confident_ids = '/data2/anja/xai/captions/val-confident-man-500.txt'
