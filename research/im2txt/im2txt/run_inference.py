@@ -44,7 +44,7 @@ tf.flags.DEFINE_string("input_files", "",
                        "File pattern or comma-separated list of file patterns "
                        "of image files.")
 tf.flags.DEFINE_string("beam_size", "3", "Beam size for beam search.")
-tf.flags.DEFINE_string("use_nn", "False", "Whether or not to use nn.")
+tf.flags.DEFINE_boolean("use_nn", "False", "Whether or not to use nn.")
 tf.flags.DEFINE_string("pickle_file", "", "Name of file to save data to.")
 tf.flags.DEFINE_string("train_data_dir", "", "Directory with training images.")
 tf.flags.DEFINE_string("caption_path", "", "Filepath with captions.")
@@ -57,8 +57,7 @@ def main(_):
   g = tf.Graph()
   with g.as_default():
     model = inference_wrapper.InferenceWrapper()
-    restore_fn = model.build_graph_from_config(configuration.ModelConfig(),
-                                               FLAGS.checkpoint_path)
+    restore_fn = model.build_graph_from_config(configuration.ModelConfig(), FLAGS.checkpoint_path)
   g.finalize()
 
   # Create the vocabulary.

@@ -51,7 +51,7 @@ except:
 confusion_words = [['man'], ['woman']]  #run for debugging
 man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
 woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
-confusion_words = [man_word_list_synonyms, woman_word_list_synonyms] #for rebuttal experiment
+#confusion_words = [man_word_list_synonyms, woman_word_list_synonyms] #for rebuttal experiment
 #confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
 confusion_word_idx = [[vocab.word_to_id(word) for word in confusion_word_set] for confusion_word_set in confusion_words]
 all_confusion_idx = confusion_word_idx[0] + confusion_word_idx[1] #useful for blocking
