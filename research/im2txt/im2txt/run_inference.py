@@ -96,7 +96,8 @@ def main(_):
         sentence += '.'
       caption_dict = {'caption': sentence, 'image_id': image_id }
       caption_dicts.append(caption_dict)
-      sys.stdout.write('\n%d/%d: (img %d) %s' %(i, len(filenames), image_id, sentence))
+      if i % 10 == 0:
+          sys.stdout.write('\n%d/%d: (img %d) %s' %(i, len(filenames), image_id, sentence))
    
     with open(FLAGS.dump_file, 'w') as outfile:
       json.dump(caption_dicts, outfile)

@@ -52,7 +52,7 @@ confident_woman = open(base_dir + '/data2/anja/xai/captions/val-confident-woman-
 confident_woman = [int(c.strip()) for c in confident_woman]
 confident_ims = set(confident_man + confident_woman) & set(bias_ids)
 balanced_ids = confident_ims
-
+"""
 print "For MSCOCO-Biased:"
 for caption_path in caption_paths:
     print "Model name: %s" %caption_path[0]
@@ -76,4 +76,4 @@ for caption_path in caption_paths:
 
     set_predictions(predictions, balanced_ids)
     pdb.set_trace() 
-
+"""

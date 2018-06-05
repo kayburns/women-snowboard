@@ -128,11 +128,13 @@ def accuracy(predicted, man_word_list=['man'], woman_word_list=['woman'], img_2_
 #all models
 caption_paths = []
 base_dir = ''
-base_dir = '/home/lisaanne/lev/'
+#base_dir = '/home/lisaanne/lev/'
 #normal_training = ('normal training', base_dir + '/data1/caption_bias/models/research/im2txt/val_cap.json')
 #caption_paths.append(normal_training)
-acl_nosum_ce = ('ACL (10) - no sum (CE)', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/train_blocked_ce.json')
-caption_paths.append(acl_nosum_ce)
+# acl_nosum_ce = ('ACL (10) - no sum (CE)', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/train_blocked_ce.json')
+# caption_paths.append(acl_nosum_ce)
+# full_gender_set = ('full gender set', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/equalizer_all_gender_words.json')
+# caption_paths.append(full_gender_set)
 #baseline_ft_inception = ('baseline ft inception', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/ft_incep_captions_500k_bias_split.json')
 #caption_paths.append(baseline_ft_inception)
 #uw = ('uw 10x', base_dir + '/data2/caption-bias/result_jsons/LW10_ft-inception-fresh.json')
@@ -155,8 +157,8 @@ caption_paths.append(acl_nosum_ce)
 #caption_paths.append(quotient_uw)
 #pytorch_model = ('pytorch_model', '/home/lisaanne/projects/sentence-generation/results/output.45950.ft-all-set.loss-acl10.ce-blocked.json')
 #caption_paths.append(pytorch_model)
-uw_man5_woman15 = ('uw_man5_woman15', base_dir + '/data2/caption-bias/result_jsons/uw-man5-woman15_ft-inception-fresh.json')
-caption_paths.append(uw_man5_woman15)
+# uw_man5_woman15 = ('uw_man5_woman15', base_dir + '/data2/caption-bias/result_jsons/uw-man5-woman15_ft-inception-fresh.json')
+# caption_paths.append(uw_man5_woman15)
 
 #caption_paths = []
 #base_dir = '/home/lisaanne/lev/'
@@ -168,7 +170,18 @@ caption_paths.append(uw_man5_woman15)
 #caption_paths.append(balanced)
 #acl = ('acl', base_dir + '/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json')
 #caption_paths.append(acl)
-#acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
-#caption_paths.append(acl_conq)
+# acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
+# caption_paths.append(acl_conq)
+
 #quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
 #caption_paths.append(quotient)
+
+# rebuttal captions
+equalizer = ('equalizer', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_retest.json')
+caption_paths.append(equalizer)
+
+all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
+caption_paths.append(all_gender_words)
+
+pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
+caption_paths.append(pairs)
