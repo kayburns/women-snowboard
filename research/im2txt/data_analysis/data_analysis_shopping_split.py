@@ -1,0 +1,5 @@
+from data_analysis_base import AnalysisBaseClass, caption_paths
+
+analysis_computer = AnalysisBaseClass(caption_paths)
+shopping_test_split = analysis_computer.get_shopping_split()
+analysis_computer.accuracy(analysis_computer.convert_filenames_to_ids(shopping_test_split))

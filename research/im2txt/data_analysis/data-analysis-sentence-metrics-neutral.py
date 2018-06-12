@@ -4,12 +4,13 @@ from data_analysis_common import *
 import nltk
 import pdb
 from bias_detection import *
+sys.path.append('/data1/caption_bias/models/research/im2txt/coco-caption/')
 from pycocotools.coco import COCO
 from pycocoevalcap.eval import COCOEvalCap
 import os
 
-base_dir = '/home/lisaanne/lev/'
-
+#base_dir = '/home/lisaanne/lev/'
+base_dir = ''
 #create person set gt
 
 gt_path = base_dir + '/data1/caption_bias/models/research/im2txt/coco-caption/annotations/captions_val2014.json'
@@ -80,7 +81,8 @@ for caption_path in caption_paths:
         words = ['person' if word in gendered_words else word for word in words] 
         cap['caption'] = ' '.join(words)
         if len(set(words) & gendered_words) > 0: pdb.set_trace()
-
+    
+    """
     person_caps = 'tmp/person_caps.json'
     with open(person_caps, 'w') as outfile:
         json.dump(predicted_caps, outfile)
@@ -88,7 +90,7 @@ for caption_path in caption_paths:
     coco_evaluator = COCOEvalCap(coco, generation_coco)
     coco_evaluator.params['image_id'] = list(set(image_set) & set(generation_coco.getImgIds()))
     coco_evaluator.evaluate()
-
+    """
     print "Model name: %s" %caption_path[0]
     pdb.set_trace() 
 
