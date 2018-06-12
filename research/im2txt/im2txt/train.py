@@ -61,7 +61,7 @@ tf.flags.DEFINE_integer("blocked_loss_weight", 100, "How much to weight blocked 
 tf.flags.DEFINE_boolean("blocked_image_ce", False, "Flag to include cross entropy loss on blocked images")
 tf.flags.DEFINE_integer("blocked_image_ce_weight", 1, "weight for blocked image ce loss")
 tf.flags.DEFINE_boolean("confusion_word_non_blocked", False, "Flag to penalize non-blocked images if they name the wrong gender")
-tf.flags.DEFINE_integer("confusion_word_non_blocked_weight", 1, "weight for blocked image ce loss")
+tf.flags.DEFINE_float("confusion_word_non_blocked_weight", 1, "weight for blocked image ce loss")
 tf.flags.DEFINE_string("confusion_word_non_blocked_type", "subtraction",
                        "Which loss to use for the confusion loss on non-blocked images.  Options: subtraction, hinge, quotient")
 
@@ -108,9 +108,16 @@ def main(unused_argv):
   g = tf.Graph()
   with g.as_default():
     # Build the model.
+    if not isinstance(FLAGS.__flags['init_from'], str):  #Tensorflow likes to change random things for different releases.  One random thing it likes to change is FLAGS.  This code takes care of that *sight*
+        flag_dict = {}
+        for key in FLAGS.__flags.keys():
+            flag_dict[key] = FLAGS.__flags[key].value
+    else:
+        flag_dict = FLAGS.__flags
+
     model = show_and_tell_model.ShowAndTellModel(
         model_config, mode="train", train_inception=FLAGS.train_inception,
-        flags=FLAGS.__flags) #let's just pass in all the flags bc this is going to get annoying
+        flags=flag_dict) #let's just pass in all the flags bc this is going to get annoying
     model.build()
 
     # Set up the learning rate.
