@@ -35,7 +35,7 @@ class AnalysisBaseClass:
                 filter_imgs,
                 AnalysisBaseClass.img_2_anno_dict_simple)
    
-    def retrieve_accuracy_with_confidence(self):
+    def retrieve_accuracy_with_confidence(self, filter_imgs=None):
         """
         Print the recall for the correct label over different
         levels of confidence for all caption paths.
@@ -52,7 +52,8 @@ class AnalysisBaseClass:
                 AnalysisBaseClass.retrieve_accuracy_with_confidence_per_model(predictions,
                     confidence,
                     AnalysisBaseClass.man_word_list_synonyms,
-                    AnalysisBaseClass.woman_word_list_synonyms)
+                    AnalysisBaseClass.woman_word_list_synonyms,
+                    filter_imgs=filter_imgs)
 
     ###############################################
     ###  Helpers (metrics over predicted set)  ####
@@ -97,7 +98,6 @@ class AnalysisBaseClass:
             image_id = prediction['image_id']
             if filter_imgs:
                 if image_id not in filter_imgs:
-                    print image_id
                     continue
             male = img_2_anno_dict_simple[image_id]['male']
             female = img_2_anno_dict_simple[image_id]['female']
@@ -163,14 +163,23 @@ class AnalysisBaseClass:
         return pred_images
 
     @staticmethod
-    def retrieve_accuracy_with_confidence_per_model(predicted, confidence_threshold, man_word_list=['man'], woman_word_list=['woman']):
+    def retrieve_accuracy_with_confidence_per_model(predicted, confidence_threshold, man_word_list=['man'], woman_word_list=['woman'], filter_imgs=None):
         correct = 0
         incorrect = 0
         correct_m, correct_f = 0, 0
         incorrect_m, incorrect_f = 0, 0
-        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys())
+        pred_m, pred_f = 0, 0
+        not_m, not_f = 0, 0
+        pred_m_not_m, pred_f_not_f = 0, 0
+
+        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys()) # TODO: all predicted should be in this dictionary?
         for prediction in predicted:
             image_id = prediction['image_id']
+
+            # TODO: consolidate conditions
+            if filter_imgs:
+                if image_id not in filter_imgs:
+                    continue
             
             if image_id in bias_ids:
                 is_male = AnalysisBaseClass.img_2_anno_dict_simple[image_id]['male']
@@ -188,7 +197,18 @@ class AnalysisBaseClass:
                 pred_male = AnalysisBaseClass.is_gendered(sentence_words, 'man', man_word_list, woman_word_list)
                 pred_female = AnalysisBaseClass.is_gendered(sentence_words, 'woman', man_word_list, woman_word_list)
 
+                if pred_male:
+                    pred_m += 1
+
+                if pred_female:
+                    pred_f += 1
+
+                # TODO: simplify logic
                 if is_conf:
+                    if is_female:
+                        not_m += 1
+                    if is_male:
+                        not_f += 1
                     if (is_female & pred_female):
                         correct += 1
                         correct_f += 1
@@ -198,10 +218,16 @@ class AnalysisBaseClass:
                     else:
                         if is_female:
                             incorrect_f += 1
+                            if pred_male:
+                                pred_m_not_m += 1
                         else:
                             incorrect_m += 1
+                            if pred_female:
+                                pred_f_not_f += 1
                         incorrect += 1
                 else:
+                    not_m += 1
+                    not_f += 1
                     pred_other = (not pred_male) & (not pred_female)
                     if pred_other:
                         correct += 1
@@ -210,15 +236,28 @@ class AnalysisBaseClass:
                         else:
                             correct_m += 1
                     else:
+                        if pred_male:
+                            pred_m_not_m += 1
+                        else:
+                            pred_f_not_f += 1
                         if is_female:
                             incorrect_f += 1 
                         else:
                             incorrect_m += 1 
                         incorrect += 1
 
+        male_tpr = correct_m / float(pred_m)
+        male_fpr = pred_m_not_m / float(not_m)
+        female_tpr = correct_f / float(pred_f)
+        female_fpr = pred_f_not_f / float(not_f)
+
         print("Accuracy for Women: %f" % (correct_f / float(correct_f + incorrect_f)))
         print("Accuracy for Men: %f" % (correct_m / float(correct_m + incorrect_m)))
         print("Accuracy: %f" % (correct / float(correct + incorrect)))
+
+        print("Men TPR / FPR: %f	%f" % (male_tpr, male_fpr)) 
+
+        print("Women TPR / FPR: %f	%f" % (female_tpr, female_fpr)) 
 
 
     
