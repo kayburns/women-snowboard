@@ -1,7 +1,7 @@
 '''
 Gets sentence metric over MSCOCO test set and biased set.
 '''
-
+from IPython import embed
 import sys
 import json
 from data_analysis_common import *
@@ -9,11 +9,13 @@ import nltk
 import pdb
 from bias_detection import *
 from pycocotools.coco import COCO
+sys.path.append('/data2/kaylee/caption_bias/models/research/im2txt/coco-caption')
 from pycocoevalcap.eval import COCOEvalCap
 import os
+from data_analysis_base import AnalysisBaseClass, caption_paths
 
-base_dir = '/home/lisaanne/lev/'
-
+#base_dir = '/home/lisaanne/lev/'
+base_dir = ''
 #create person set gt
 
 gt_path = base_dir + '/data1/caption_bias/models/research/im2txt/coco-caption/annotations/captions_val2014.json'
@@ -40,8 +42,8 @@ for caption_path in caption_paths:
     
     generation_coco = coco.loadRes(caption_path[1])
     coco_evaluator = COCOEvalCap(coco, generation_coco)
-    coco_evaluator.evaluate()
-    
+    # coco_evaluator.evaluate()
+
     print "##############Sentence metrics over Biased Set:#######################"
     
     
@@ -64,5 +66,16 @@ for caption_path in caption_paths:
     # cocoEval.params['image_id'] = cocoRes.getImgIds()
     # please remove this line when evaluating the full validation set
     coco_evaluator.params['image_id'] = generation_coco.getImgIds()
+    embed()
+    coco_evaluator.evaluate()
+
+    print "Model name: %s" %caption_path[0]
+    print "##############Sentence metrics over Shopping Test:#######################"
+    # evaluate on a subset of images by setting
+    # cocoEval.params['image_id'] = cocoRes.getImgIds()
+    # please remove this line when evaluating the full validation set
+    shopping_test_split = AnalysisBaseClass.get_shopping_split()
+    coco_evaluator.params['image_id'] = AnalysisBaseClass.convert_filenames_to_ids(shopping_test_split)
     coco_evaluator.evaluate()
     
+

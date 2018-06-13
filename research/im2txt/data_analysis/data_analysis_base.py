@@ -1,7 +1,7 @@
 """
 Common code shared across data analysis scripts. Please run me in python 2.
 """
-import os
+import os, sys
 import json, pickle, collections
 import nltk
 from bias_detection import create_dict_from_list # TODO consolidate nicely
@@ -46,8 +46,11 @@ class AnalysisBaseClass:
         and a gender neutral word otherwise.
         """
         for caption_path in caption_paths:
-            for confidence in range(1,6):
-                print("Model name: %s, Confidence Level: %d" %(caption_path[0], confidence))
+            #for confidence in range(1,6):
+            for confidence in [3]:
+                #print("Model name: %s, Confidence Level: %d" %(caption_path[0], confidence))
+                sys.stdout.write('%s\t'%caption_path[0])
+                sys.stdout.flush()
                 predictions = json.load(open(caption_path[1]))
                 AnalysisBaseClass.retrieve_accuracy_with_confidence_per_model(predictions,
                     confidence,
@@ -171,6 +174,9 @@ class AnalysisBaseClass:
         pred_m, pred_f = 0, 0
         not_m, not_f = 0, 0
         pred_m_not_m, pred_f_not_f = 0, 0
+        pred_m_is_m, pred_f_is_f = 0, 0
+        is_f, is_m = 0, 0
+        total = 0
 
         bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys()) # TODO: all predicted should be in this dictionary?
         for prediction in predicted:
@@ -185,6 +191,8 @@ class AnalysisBaseClass:
                 is_male = AnalysisBaseClass.img_2_anno_dict_simple[image_id]['male']
                 is_female = AnalysisBaseClass.img_2_anno_dict_simple[image_id]['female']
                 gt_captions = AnalysisBaseClass.gt_caps[image_id]
+                
+                total += 1
 
                 if is_male:
                     gender = 'man'
@@ -207,13 +215,17 @@ class AnalysisBaseClass:
                 if is_conf:
                     if is_female:
                         not_m += 1
+                        is_f += 1
                     if is_male:
                         not_f += 1
+                        is_m += 1
                     if (is_female & pred_female):
                         correct += 1
+                        pred_f_is_f += 1
                         correct_f += 1
                     elif (is_male & pred_male):
                         correct += 1
+                        pred_m_is_m += 1
                         correct_m += 1
                     else:
                         if is_female:
@@ -246,20 +258,23 @@ class AnalysisBaseClass:
                             incorrect_m += 1 
                         incorrect += 1
 
-        male_tpr = correct_m / float(pred_m)
+        male_tpr = pred_m_is_m / float(is_m)
         male_fpr = pred_m_not_m / float(not_m)
-        female_tpr = correct_f / float(pred_f)
+        female_tpr = pred_f_is_f / float(is_f)
         female_fpr = pred_f_not_f / float(not_f)
 
+        """
         print("Accuracy for Women: %f" % (correct_f / float(correct_f + incorrect_f)))
         print("Accuracy for Men: %f" % (correct_m / float(correct_m + incorrect_m)))
         print("Accuracy: %f" % (correct / float(correct + incorrect)))
 
         print("Men TPR / FPR: %f	%f" % (male_tpr, male_fpr)) 
-
+        print("Men: %f	%f	%f	%f" % (pred_m_is_m, is_m, pred_m_not_m, not_m))
         print("Women TPR / FPR: %f	%f" % (female_tpr, female_fpr)) 
+        print("Women: %f	%f	%f	%f" % (pred_f_is_f, is_f, pred_f_not_f, not_f))
+        """
 
-
+        print "%f\t%f\t%f\t%f" % (male_tpr, male_fpr, female_tpr, female_fpr)
     
     ###############################################
     ########             Utils             ########
@@ -387,8 +402,6 @@ base_dir = ''
 #caption_paths.append(acl_uw)
 #acl_uw_ce = ('ACL UW CE', base_dir + '/data2/caption-bias/result_jsons/blocked_ce_LW10_ft-inception-fresh-iter1.500k.json')
 #caption_paths.append(acl_uw_ce)
-quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
-caption_paths.append(quotient)
 #quotient_uw = ('quotient UW', base_dir +'/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_UW_10_500k_caps.json')
 #caption_paths.append(quotient_uw)
 #pytorch_model = ('pytorch_model', '/home/lisaanne/projects/sentence-generation/results/output.45950.ft-all-set.loss-acl10.ce-blocked.json')
@@ -404,6 +417,8 @@ uw = ('uw 10x', base_dir + '/data2/caption-bias/result_jsons/LW10_ft-inception-f
 caption_paths.append(uw)
 balanced = ('balanced', base_dir + '/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json')
 caption_paths.append(balanced)
+quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
+caption_paths.append(quotient)
 acl = ('acl', base_dir + '/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json')
 caption_paths.append(acl)
 acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
@@ -413,11 +428,11 @@ caption_paths.append(acl_conq)
 #caption_paths.append(quotient)
 
 # rebuttal captions
-equalizer = ('equalizer', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_retest.json')
-caption_paths.append(equalizer)
+#equalizer = ('equalizer', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_retest.json')
+#caption_paths.append(equalizer)
 
-all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
-caption_paths.append(all_gender_words)
+#all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
+#caption_paths.append(all_gender_words)
 
-pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
-caption_paths.append(pairs)
+#pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
+#caption_paths.append(pairs)
