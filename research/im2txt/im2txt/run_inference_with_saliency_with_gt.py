@@ -69,7 +69,6 @@ def main(_):
   vocab = vocabulary.Vocabulary(FLAGS.vocab_file)
   man_id = vocab.word_to_id('man')
   woman_id = vocab.word_to_id('woman')
-  person_id = vocab.word_to_id('person')
 
   of = open(FLAGS.img_path, 'r')
   image_ids = of.read().split('\n')
@@ -84,15 +83,17 @@ def main(_):
     if str(image_id) not in image_ids: continue
     if image_id not in json_dict:
       caption = entry['caption']
-      tokens = caption.split(' ')      
+      caption = caption.lower()
+      tokens = caption.split(' ')
       if '-man' in FLAGS.img_path: look_for = 'man'
       elif '-woman' in FLAGS.img_path: look_for = 'woman'
       else: assert(False)
       if look_for in tokens:
-        json_dict[image_id] = entry['caption']
+        json_dict[image_id] = caption
     if len(json_dict) == 500: break
 
   image_ids = json_dict.keys()
+  assert(len(image_ids)==500)
 
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.
@@ -101,7 +102,7 @@ def main(_):
     mask_dir_base = '/data2/caption-bias/mask-out-ims/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
     if not os.path.exists(mask_dir_base):
         os.makedirs(mask_dir_base)
-    
+
     global_index = 0
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
@@ -151,8 +152,8 @@ def main(_):
             save_path_pre = ""
           model.process_image(sess, images, encoded_tokens, original_filename, mask_filenames, vocab, word_index=wid-1, word_id=woman_id, save_path=save_path_pre)
           global_index += 1
-#      for filename in mask_filenames:
-#          os.remove(filename)
+      for filename in mask_filenames:
+          os.remove(filename)
       import gc
       gc.collect()
 
