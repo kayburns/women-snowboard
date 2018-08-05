@@ -27,7 +27,9 @@ class AnalysisBaseClass:
         Print accuracy breakdown for all caption paths. 
         """
         for caption_path in caption_paths:
-            print("Model name: %s" %caption_path[0])
+            #print("Model name: %s" %caption_path[0])
+            sys.stdout.write('%s\t'%caption_path[0])
+            sys.stdout.flush()
             predictions = json.load(open(caption_path[1]))
             AnalysisBaseClass.accuracy_per_model(predictions,
                 AnalysisBaseClass.man_word_list_synonyms,
@@ -46,17 +48,21 @@ class AnalysisBaseClass:
         and a gender neutral word otherwise.
         """
         for caption_path in caption_paths:
-            #for confidence in range(1,6):
-            for confidence in [3]:
-                #print("Model name: %s, Confidence Level: %d" %(caption_path[0], confidence))
+            for confidence in range(1,6):
+            # for confidence in [4]:
+                print("Model name: %s, Confidence Level: %d"
+                    %(caption_path[0], confidence)
+                )
                 sys.stdout.write('%s\t'%caption_path[0])
                 sys.stdout.flush()
                 predictions = json.load(open(caption_path[1]))
-                AnalysisBaseClass.retrieve_accuracy_with_confidence_per_model(predictions,
+                AnalysisBaseClass.retrieve_accuracy_with_confidence_per_model(
+                    predictions,
                     confidence,
                     AnalysisBaseClass.man_word_list_synonyms,
                     AnalysisBaseClass.woman_word_list_synonyms,
-                    filter_imgs=filter_imgs)
+                    filter_imgs=filter_imgs
+                )
 
     ###############################################
     ###  Helpers (metrics over predicted set)  ####
@@ -82,6 +88,7 @@ class AnalysisBaseClass:
         f_tn = 0.
         f_other = 0.
         f_total = 0.
+        f_person = 0.
         
         
         m_tp = 0.
@@ -89,7 +96,8 @@ class AnalysisBaseClass:
         m_tn = 0.
         m_other = 0.
         m_total = 0.
-        
+        m_person = 0.        
+
         male_pred_female = []
         female_pred_male = []
         male_pred_male = []
@@ -105,8 +113,16 @@ class AnalysisBaseClass:
             male = img_2_anno_dict_simple[image_id]['male']
             female = img_2_anno_dict_simple[image_id]['female']
             sentence_words = nltk.word_tokenize(prediction['caption'].lower())
-            pred_male = AnalysisBaseClass.is_gendered(sentence_words, 'man', man_word_list, woman_word_list)
-            pred_female = AnalysisBaseClass.is_gendered(sentence_words, 'woman', man_word_list, woman_word_list)
+            pred_male = AnalysisBaseClass.is_gendered(
+                sentence_words, 'man', man_word_list, woman_word_list
+            )
+            pred_female = AnalysisBaseClass.is_gendered(
+                sentence_words, 'woman', man_word_list, woman_word_list
+            )
+            pred_other = (not pred_male) and (not pred_female)
+            pred_person = (pred_other) and AnalysisBaseClass.contains_words(
+                sentence_words
+            )
 
             if (female & pred_female):
                 f_tp += 1
@@ -124,18 +140,23 @@ class AnalysisBaseClass:
                 f_tn += 1
             if ((not male) & (not pred_male)):
                 m_tn += 1
-            pred_other = (not pred_male) & (not pred_female)
             if (female & pred_other):
                 f_other += 1
                 female_pred_other.append(prediction)
+                if pred_person:
+                    f_person += 1
             if (male & pred_other):
                 m_other += 1
                 male_pred_other.append(prediction)
+                if pred_person:
+                    m_person += 1
             if female:
                 f_total += 1
             if male:
                 m_total += 1
 
+        ratio = (f_tp + f_fp)/(m_tp + m_fp)
+        """
         print "Of female images:"
         print "Man predicted %f percent." %(m_fp/f_total)
         print "Woman predicted %f percent." %(f_tp/f_total)
@@ -147,14 +168,19 @@ class AnalysisBaseClass:
         print "Woman predicted %f percent." %(f_fp/m_total)
         print "Other predicted %f percent." %(m_other/m_total)
         print "%f	%f	%f"% (m_tp/m_total, f_fp/m_total, m_other/m_total)
-
+        """
         print "Of total:"
         print "Correct %f percent." %((m_tp+f_tp)/(m_total+f_total))
         print "Incorect %f percent." %((m_fp+f_fp)/(m_total+f_total))
         print "Other predicted %f percent." %((f_other+m_other)/(m_total+f_total))
         print "%f	%f	%f"% ((m_tp+f_tp)/(m_total+f_total), (m_fp+f_fp)/(m_total+f_total), (m_other+f_other)/(f_total+m_total))
 
-        print "ratio", float(f_tp + f_fp)/(m_tp + m_fp)
+        print "ratio", ratio
+        
+        print "%f\t%f\t%f\t%f\t%f\t%f\t%f" % (f_tp/f_total, m_fp/f_total, f_other/f_total, m_tp/m_total, f_fp/m_total, m_other/m_total, ratio)
+        #print "Percent of other with Person (M, W): %f\t%f" % (m_person / m_other, f_person / f_other)
+        # print "%f\t%f" % ((m_fp + f_fp)/(m_total+f_total), ratio) 
+        # print f_total/m_total
         pred_images = {}
         pred_images['male_pred_male'] = male_pred_male
         pred_images['female_pred_female'] = female_pred_female
@@ -166,19 +192,22 @@ class AnalysisBaseClass:
         return pred_images
 
     @staticmethod
-    def retrieve_accuracy_with_confidence_per_model(predicted, confidence_threshold, man_word_list=['man'], woman_word_list=['woman'], filter_imgs=None):
-        correct = 0
-        incorrect = 0
-        correct_m, correct_f = 0, 0
-        incorrect_m, incorrect_f = 0, 0
-        pred_m, pred_f = 0, 0
-        not_m, not_f = 0, 0
-        pred_m_not_m, pred_f_not_f = 0, 0
-        pred_m_is_m, pred_f_is_f = 0, 0
-        is_f, is_m = 0, 0
-        total = 0
+    def retrieve_accuracy_with_confidence_per_model(
+        predicted, confidence_threshold, man_word_list=['man'],
+        woman_word_list=['woman'], filter_imgs=None
+    ):
+        correct = 0.
+        incorrect = 0.
+        correct_m, correct_f = 0., 0.
+        incorrect_m, incorrect_f = 0., 0.
+        pred_m, pred_f = 0., 0.
+        not_m, not_f = 0., 0.
+        pred_m_not_m, pred_f_not_f = 0., 0.
+        pred_m_is_m, pred_f_is_f = 0., 0.
+        is_f, is_m = 0., 0.
+        total = 0.
 
-        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys()) # TODO: all predicted should be in this dictionary?
+        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys())
         for prediction in predicted:
             image_id = prediction['image_id']
 
@@ -187,9 +216,10 @@ class AnalysisBaseClass:
                 if image_id not in filter_imgs:
                     continue
             
+            anno_dict = AnalysisBaseClass.img_2_anno_dict_simple
             if image_id in bias_ids:
-                is_male = AnalysisBaseClass.img_2_anno_dict_simple[image_id]['male']
-                is_female = AnalysisBaseClass.img_2_anno_dict_simple[image_id]['female']
+                is_male = anno_dict[image_id]['male']
+                is_female = anno_dict[image_id]['female']
                 gt_captions = AnalysisBaseClass.gt_caps[image_id]
                 
                 total += 1
@@ -199,11 +229,19 @@ class AnalysisBaseClass:
                 else:
                     gender = 'woman'
 
-                is_conf = AnalysisBaseClass.confidence_level(gt_captions, gender) >= confidence_threshold
+                is_conf = AnalysisBaseClass.confidence_level(
+                    gt_captions, gender
+                ) >= confidence_threshold
 
-                sentence_words = nltk.word_tokenize(prediction['caption'].lower())
-                pred_male = AnalysisBaseClass.is_gendered(sentence_words, 'man', man_word_list, woman_word_list)
-                pred_female = AnalysisBaseClass.is_gendered(sentence_words, 'woman', man_word_list, woman_word_list)
+                sentence_words = nltk.word_tokenize(
+                    prediction['caption'].lower()
+                )
+                pred_male = AnalysisBaseClass.is_gendered(
+                    sentence_words, 'man', man_word_list, woman_word_list
+                )
+                pred_female = AnalysisBaseClass.is_gendered(
+                    sentence_words, 'woman', man_word_list, woman_word_list
+                )
 
                 if pred_male:
                     pred_m += 1
@@ -274,18 +312,53 @@ class AnalysisBaseClass:
         print("Women: %f	%f	%f	%f" % (pred_f_is_f, is_f, pred_f_not_f, not_f))
         """
 
-        print "%f\t%f\t%f\t%f" % (male_tpr, male_fpr, female_tpr, female_fpr)
-    
+        # print "%f\t%f\t%f\t%f" % (male_tpr, male_fpr, female_tpr, female_fpr)
+        print correct / (incorrect+correct)
+
     ###############################################
     ########             Utils             ########
     ###############################################
+
+    # Static variables
+    man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 
+        'groom', 'male','guy', 'men', 'males', 'boys', 'guys', 'dads', 'dude', 
+        'policeman', 'policemen', 'father', 'son', 'fireman', 'actor', 
+        'gentleman', 'boyfriend', 'mans', 'his', 'obama', 'actors']
+    woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman',
+        'bride', 'female', 'lady', 'women', 'girls', 'ladies', 'females',
+        'moms', 'actress', 'nun', 'girlfriend', 'her', 'she']
+    person_word_list_synonyms = ['person', 'child', 'kid', 'teenager',
+        'someone', 'player', 'rider', 'people', 'crowd', 'skiier',
+        'snowboarder', 'surfer', 'children', 'hipster', 'bikder', 'bikers',
+        'skiiers', 'snowboarders', 'surfers', 'chef', 'chefs', 'family',
+        'skateboarder', 'skateboarders', 'adult', 'adults', 'baby', 'babies',
+        'skiers', 'skier', 'diver', 'divers', 'bicycler', 'bicyclists',
+        'friends', 'kids', 'hikers', 'hiker', 'student', 'students',
+        'teenagers', 'riders', 'shopper', 'cyclist', 'officer', 'pedestrians',
+        'teen', 'worker', 'passenger', 'passengers', 'cook', 'cooks',
+        'officers', 'persons', 'workers', 'pedestrian', 'employee',
+        'employees', 'driver', 'cyclists', 'skater', 'skaters', 'toddler',
+        'fighter', 'patrol', 'patrols', 'cop', 'couple', 'server', 'carrier',
+        'player', 'players', 'motorcyclist', 'motorcyclists', 'youngsters',
+        'carpenter', 'owner', 'owners', 'individual', 'bicyclists',
+        'bicyclist', 'group', 'boarder', 'boarders', 'boater', 'painter',
+        'artist', 'citizen', 'youths', 'staff', 'biker', 'technician', 'hand',
+        'baker', 'fans', 'they', 'manager', 'plumber', 'hands',
+        'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
+    anno_dir = '/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
+    target_train = os.path.join(anno_dir, 'train.data')
+    target_val = os.path.join(anno_dir, 'dev.data')
+    target_test = os.path.join(anno_dir, 'test.data')
+
 
     @staticmethod
     def confidence_level(caption_list, gender):
         """Returns number of captions that say correct gender."""
         conf = 0
         for cap in caption_list:
-            if AnalysisBaseClass.is_gendered(nltk.word_tokenize(cap.lower()), gender_type=gender):
+            if AnalysisBaseClass.is_gendered(
+                nltk.word_tokenize(cap.lower()), gender_type=gender
+            ):
                 conf += 1
         return conf
 
@@ -296,6 +369,16 @@ class AnalysisBaseClass:
         for fname in fnames:
             new_list.append(int(fname.split('.')[0].split('_')[2]))
         return new_list
+
+    @staticmethod
+    def contains_words(words, word_list=person_word_list_synonyms):
+        """
+        Returns true if the words in words contain
+        any of the words in the word_list.
+        """
+        words = [str(word) for word in words]
+        word_list = [str(word) for word in word_list]
+        return len(set(words) & set(word_list)) > 0
 
     @staticmethod
     def is_gendered(words, gender_type='woman', man_word_list=['man'], woman_word_list=['woman']):
@@ -309,16 +392,10 @@ class AnalysisBaseClass:
         f = False
         check_m = (gender_type == 'man')
         check_f = (gender_type == 'woman')
-        if len(set(words) & set(man_word_list)) > 0:
-            m = True
-        if len(set(words) & set(woman_word_list)) > 0:
-            f = True
-        if m & f:
-            return False
-        if m & check_m:
-            return True
-        elif f & check_f:
-            return True
+        m = AnalysisBaseClass.contains_words(words, man_word_list)
+        f = AnalysisBaseClass.contains_words(words, woman_word_list)
+        if m != f:
+            return (m and check_m) or (f and check_f)
         else:
             return False
 
@@ -343,7 +420,9 @@ class AnalysisBaseClass:
         return img_2_anno_dict_simple
 
     @staticmethod
-    def get_shopping_split(fpath='/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/dev.data'):
+    def get_shopping_split(
+        fpath='/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/dev.data'
+    ):
         # TODO: move all data to one location and store dir as attribute
         """Returns desired split from men also like shopping as a list of filenames."""
         data = []
@@ -353,18 +432,16 @@ class AnalysisBaseClass:
 
         return data
 
-    # Static variables
-    man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
-    woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
-    anno_dir = '/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
-    target_train = os.path.join(anno_dir, 'train.data')
-    target_val = os.path.join(anno_dir, 'dev.data')
-    target_test = os.path.join(anno_dir, 'test.data')
-
     # create annotation dictionary and simplified anno dict
-    img_2_anno_dict = create_dict_from_list(pickle.load(open(target_train, 'rb')))
-    img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_test, 'rb'))))
-    img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_val, 'rb'))))
+    img_2_anno_dict = create_dict_from_list(
+        pickle.load(open(target_train, 'rb'))
+    )
+    img_2_anno_dict.update(create_dict_from_list(
+        pickle.load(open(target_test, 'rb')))
+    )
+    img_2_anno_dict.update(create_dict_from_list(
+        pickle.load(open(target_val, 'rb')))
+    )
     img_2_anno_dict_simple = simplify_anno_dict.__func__(img_2_anno_dict) # bleh
     # fetch ground truth captions and store in dict mapping id : caps
     gt_path = '/data1/coco/annotations_trainval2014/captions_only_valtrain2014.json'
@@ -372,6 +449,32 @@ class AnalysisBaseClass:
     gt_caps = collections.defaultdict(list)
     for cap in gt_caps_list:
         gt_caps[int(cap['image_id'])].append(cap['caption'])
+
+    @staticmethod
+    def get_confident_split(conf_level=4):
+        """
+        Return list of image ids with confidence greater than or equal to
+        conf_level. Confidence is number of ground truth human annotators
+        who said correct_gender.
+
+        returns: a list of captions with specified confidence
+        """
+        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys())
+        conf_ids = []
+        img_2_anno = AnalysisBaseClass.img_2_anno_dict_simple
+        conf_calculator = AnalysisBaseClass.confidence_level
+
+        for image_id in bias_ids:
+            gt_captions = AnalysisBaseClass.gt_caps[image_id]
+            is_male = img_2_anno[image_id]['male']
+            is_female = img_2_anno[image_id]['female']
+            if is_male:
+                gender = 'man'
+            else:
+                gender = 'woman'
+            if conf_calculator(gt_captions, gender) >= conf_level:
+                conf_ids.append(image_id)
+        return conf_ids
 
 
 # TODO: make attribute of class
@@ -424,6 +527,12 @@ caption_paths.append(acl)
 acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
 caption_paths.append(acl_conq)
 
+quotient_5 = ('quotient .5', base_dir+'/data2/caption-bias/result_jsons/confusion_0.5.json')
+caption_paths.append(quotient_5)
+
+acl_10_quotient_5 = ('acl 10, quotient .5', base_dir+'/data2/caption-bias/result_jsons/confusion_0.5_acl10.json')
+caption_paths.append(acl_10_quotient_5)
+
 #quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
 #caption_paths.append(quotient)
 
@@ -431,8 +540,8 @@ caption_paths.append(acl_conq)
 #equalizer = ('equalizer', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_retest.json')
 #caption_paths.append(equalizer)
 
-#all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
-#caption_paths.append(all_gender_words)
+all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
+caption_paths.append(all_gender_words)
 
-#pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
-#caption_paths.append(pairs)
+# pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
+# caption_paths.append(pairs)
