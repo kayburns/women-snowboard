@@ -345,7 +345,7 @@ class AnalysisBaseClass:
         'artist', 'citizen', 'youths', 'staff', 'biker', 'technician', 'hand',
         'baker', 'fans', 'they', 'manager', 'plumber', 'hands',
         'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
-    anno_dir = '/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
+    anno_dir = '/home/lisaanne/lev/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
     target_train = os.path.join(anno_dir, 'train.data')
     target_val = os.path.join(anno_dir, 'dev.data')
     target_test = os.path.join(anno_dir, 'test.data')
@@ -421,7 +421,7 @@ class AnalysisBaseClass:
 
     @staticmethod
     def get_shopping_split(
-        fpath='/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/dev.data'
+        fpath='/home/lisaanne/lev/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/dev.data'
     ):
         # TODO: move all data to one location and store dir as attribute
         """Returns desired split from men also like shopping as a list of filenames."""
@@ -444,7 +444,7 @@ class AnalysisBaseClass:
     )
     img_2_anno_dict_simple = simplify_anno_dict.__func__(img_2_anno_dict) # bleh
     # fetch ground truth captions and store in dict mapping id : caps
-    gt_path = '/data1/coco/annotations_trainval2014/captions_only_valtrain2014.json'
+    gt_path = '/home/lisaanne/lev/data1/coco/annotations_trainval2014/captions_only_valtrain2014.json'
     gt_caps_list = json.load(open(gt_path))['annotations']
     gt_caps = collections.defaultdict(list)
     for cap in gt_caps_list:
@@ -513,24 +513,24 @@ base_dir = ''
 # caption_paths.append(uw_man5_woman15)
 
 #caption_paths = []
-#base_dir = '/home/lisaanne/lev/'
-baseline_ft_inception = ('baseline ft inception', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/ft_incep_captions_500k_bias_split.json')
+base_dir = '../final_captions_eccv2018/'
+baseline_ft_inception = ('baseline ft inception', base_dir + 'ft_incep_captions_500k_bias_split.json')
 caption_paths.append(baseline_ft_inception)
-uw = ('uw 10x', base_dir + '/data2/caption-bias/result_jsons/LW10_ft-inception-fresh.json')
+uw = ('uw 10x', base_dir + 'LW10_ft-inception-fresh.json')
 caption_paths.append(uw)
-balanced = ('balanced', base_dir + '/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json')
+balanced = ('balanced', base_dir + 'balance_man_woman_ft_inception.json')
 caption_paths.append(balanced)
-quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
+quotient = ('quotient', base_dir + 'quotient_no_blocked_caps.json')
 caption_paths.append(quotient)
-acl = ('acl', base_dir + '/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json')
+acl = ('acl', base_dir + 'blocked_loss_w10_ft_incep_no_sum.json')
 caption_paths.append(acl)
-acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
+acl_conq = ('ACL Con-Q', base_dir + 'quotient_loss_500k_iters.json')
 caption_paths.append(acl_conq)
 
-quotient_5 = ('quotient .5', base_dir+'/data2/caption-bias/result_jsons/confusion_0.5.json')
+quotient_5 = ('quotient .5', base_dir+'confusion_0.5.json')
 caption_paths.append(quotient_5)
 
-acl_10_quotient_5 = ('acl 10, quotient .5', base_dir+'/data2/caption-bias/result_jsons/confusion_0.5_acl10.json')
+acl_10_quotient_5 = ('acl 10, quotient .5', base_dir+'confusion_0.5_acl10.json')
 caption_paths.append(acl_10_quotient_5)
 
 #quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
@@ -540,7 +540,7 @@ caption_paths.append(acl_10_quotient_5)
 #equalizer = ('equalizer', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_retest.json')
 #caption_paths.append(equalizer)
 
-all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
+all_gender_words = ('equalizer trained with larger set of gender words', base_dir + 'equalizer_all_gender_words.json')
 caption_paths.append(all_gender_words)
 
 # pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
