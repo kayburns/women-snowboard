@@ -322,17 +322,9 @@ class AnalysisBaseClass:
 
         labels = pickle.load(open('../data/gt_labels.p', 'rb'))
 
-        man_count_correct = collections.defaultdict(int) 
-        woman_count_correct = collections.defaultdict(int)
-        man_count_incorrect = collections.defaultdict(int) 
-        woman_count_incorrect = collections.defaultdict(int)
-        gt_man_count = collections.defaultdict(int) 
-        gt_woman_count = collections.defaultdict(int)
+        man_count = collections.defaultdict(int) 
+        woman_count = collections.defaultdict(int)
         gt_all_count = collections.defaultdict(int)
-        count_all = collections.defaultdict(int)
-
-        num_man = 0
-        num_woman = 0
 
         for count_p, prediction in enumerate(predictions):
     
@@ -348,32 +340,21 @@ class AnalysisBaseClass:
                                                         AnalysisBaseClass.man_word_list_synonyms, 
                                                         AnalysisBaseClass.woman_word_list_synonyms)
 
-            if pred_male: num_man += 1
-            if pred_female: num_woman += 1
-    
             sentence_words = [singularize(word) for word in sentence_words]
             num_words = len(sentence_words) - 1
+
+            #This is to account for words like "hot dog".
             for i in range(num_words):
                 sentence_words.append(' '.join([sentence_words[i], sentence_words[i+1]]))
+            #which words are both in setence and mscoco objects
             count_words = list(set(sentence_words) & set(mscoco_words))        
      
             for word in count_words:
                 if pred_male:
-                    if synonym_dict[word] in labels['labels'][prediction['image_id']]:
-                        man_count_correct[synonym_dict[word]] += 1
-                    else:
-                        man_count_incorrect[synonym_dict[word]] += 1
+                    man_count[synonym_dict[word]] += 1
                 if pred_female:
-                    if synonym_dict[word] in labels['labels'][prediction['image_id']]:
-                        woman_count_correct[synonym_dict[word]] += 1
-                    else:
-                        woman_count_incorrect[synonym_dict[word]] += 1
-                count_all[word] += 1
+                    woman_count[synonym_dict[word]] += 1
             for word in set(labels['labels'][prediction['image_id']]):
-                if pred_male:
-                    gt_man_count[word] += 1
-                if pred_female:
-                    gt_woman_count[word] += 1
                 gt_all_count[word] += 1 
 
         output_dict = {}
@@ -384,26 +365,22 @@ class AnalysisBaseClass:
         b = 0.
         count = 0
         for word in set(synonym_dict.values()):        
-            man_count = man_count_correct[word] + man_count_incorrect[word]
-            woman_count = woman_count_correct[word] + woman_count_incorrect[word]
             #print "%s\t%0.03f" %(word, man_count/(man_count+woman_count+ 0.0005))
             if gt_all_count[word] > 0: 
-                bb =  man_count/(gt_all_count[word]+0.0005)
+                bb =  man_count[word]/(gt_all_count[word]+0.0005)
                 output_dict['man'][word] = bb
                 print "%s\t%0.03f" %(word, bb)
 
             b += bb 
             count += 1
         print "%0.03f" %(b/count) 
-    
+ 
         print "Bias amplification (comparison to woman):"
         b = 0.
         count = 0
         for word in set(synonym_dict.values()):        
-            man_count = man_count_correct[word] + man_count_incorrect[word]
-            woman_count = woman_count_correct[word] + woman_count_incorrect[word]
             if gt_all_count[word] > 0: 
-                bb =  woman_count/(gt_all_count[word]+0.0005)
+                bb =  woman_count[word]/(gt_all_count[word]+0.0005)
                 output_dict['woman'][word] = bb
                 print "%s\t%0.03f" %(word, bb)
             b += bb 
@@ -440,13 +417,13 @@ class AnalysisBaseClass:
     
             #get absolute mean of difference
     
-            print ("Average bias amplification across objects for man")
+            print ("Average bias amplification across objects for man for caption model %s: " %caption_path[0])
             obj_diffs = []
             for obj in gt_output['man']:
                 obj_diffs.append(np.abs(gt_output['man'][obj] - gen_output['man'][obj]))
             print ("Average bias amplification for man: %0.04f" %(np.mean(obj_diffs))) 
     
-            print ("Average amplification across objects for woman")
+            print ("Average bias amplification across objects for woman for caption model %s: " %caption_path[0])
             obj_diffs = []
             for obj in gt_output['woman']:
                 obj_diffs.append(np.abs(gt_output['woman'][obj] - gen_output['woman'][obj]))
