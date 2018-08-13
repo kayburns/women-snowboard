@@ -71,6 +71,42 @@ class AnalysisBaseClass:
     ###############################################
 
     @staticmethod
+    def get_gender_count(predictions, man_word_list=['man'], woman_word_list=['woman']):
+        '''
+        Get gender count and ratios for predicted sentences.
+        '''
+   
+        man_count, woman_count, other_count = 0., 0., 0.
+
+        for prediction in predictions:
+            sentence_words = nltk.word_tokenize(prediction['caption'].lower())
+            pred_man = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                     'man', 
+                                                     man_word_list, 
+                                                     woman_word_list)
+            pred_woman = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                       'woman', 
+                                                       man_word_list, 
+                                                       woman_word_list)
+        
+            if pred_man & pred_woman:
+                other_count += 1
+            elif pred_man: 
+                man_count += 1  
+            elif pred_woman: 
+                woman_count += 1  
+            else: 
+                other_count += 1  
+
+        ratio = woman_count/(man_count + 1e-5)
+        print "Man count\tWoman count\tOther count\tWoman:Man ratio"
+        print "%d\t%d\t%d\t%0.05f" %(man_count, woman_count, 
+                                    other_count, ratio)
+
+        #return man_count, woman_count, other_count, ratio
+        return man_count, woman_count, other_count, ratio 
+
+    @staticmethod
     def accuracy_per_model(predicted, man_word_list=['man'], woman_word_list=['woman'], filter_imgs=None, img_2_anno_dict_simple=None):
         """
         Prints accuracy of predictions.
@@ -318,6 +354,48 @@ class AnalysisBaseClass:
         print correct / (incorrect+correct)
 
     @staticmethod
+    def biased_objects(gt_path, filter_imgs=[], models_to_test=['Baseline-FT', 'Equalizer w/o ACL', 'Equalizer w/o Confident', 'Equalizer']):
+        '''
+        Compute error and ratio for individual biased objects.  
+        Should replicate results in Table 1 of supplemental.
+        '''
+
+        caption_paths_local = [caption_path for caption_path in caption_paths if 
+                               caption_path[0] in models_to_test]
+
+        bias_words = ['umbrella', 'kitchen', 'cell', 'table', 'food', 'skateboard', 'baseball', 'tie', 'motorcycle', 'snowboard']
+
+        gt = AnalysisBaseClass.format_gt_captions(gt_path)
+
+        for bias_word in bias_words:
+
+            print "Bias word is: %s" %bias_word
+            anno_ids = open('../data/object_lists/intersection_%s_person.txt' %bias_word).readlines()
+            anno_ids = [int(anno_id) for anno_id in anno_ids]
+
+            #TODO: get numbers for GT
+
+            gt_filtered = [item for item in gt \
+                               if item['image_id'] in (set(filter_imgs) & set(anno_ids))]
+            print "Model: GT"
+            import pdb; pdb.set_trace()
+            _, _, _, gt_ratio = \
+                          AnalysisBaseClass.get_gender_count(gt_filtered, 
+                                            AnalysisBaseClass.man_word_list_synonyms, 
+                                            AnalysisBaseClass.woman_word_list_synonyms)
+
+            for caption_path in caption_paths_local:
+                print "Model: %s" %caption_path[0]
+                predictions = json.load(open(caption_path[1]))
+                captions = [item for item in predictions \
+                            if item['image_id'] in set(filter_imgs) & set(anno_ids)]
+                _, _, _, ratio = \
+                          AnalysisBaseClass.get_gender_count(captions, 
+                                            AnalysisBaseClass.man_word_list_synonyms, 
+                                            AnalysisBaseClass.woman_word_list_synonyms)
+                print "Delta ratio: %0.04f" %(np.abs(ratio-gt_ratio)) 
+
+    @staticmethod
     def bias_amplification_objects(predictions):
 
         #Read in MSCOCO synonyms from synonyms.txt and pre-computed object
@@ -405,7 +483,8 @@ class AnalysisBaseClass:
         return output_dict
 
     @staticmethod
-    def bias_amplification_objects_stats(gt_path, filter_imgs=[]):
+    def bias_amplification_objects_stats(gt_path, filter_imgs=[],
+                                         models_to_test=['Baseline-FT', 'Equalizer']):
 
         '''
         Computes bias amplification for baseline and Equalizer captions.
@@ -421,7 +500,7 @@ class AnalysisBaseClass:
         gt_output = AnalysisBaseClass.bias_amplification_objects(gt)
 
         caption_paths_local = [caption_path for caption_path in caption_paths if 
-                               caption_path[0] in ['Baseline-FT', 'Equalizer']]
+                               caption_path[0] in models_to_test]
         for caption_path in caption_paths_local:
 
             predictions = json.load(open(caption_path[1]))
@@ -649,7 +728,7 @@ balanced = ('Balanced', base_dir + 'balance_man_woman_ft_inception.json')
 caption_paths.append(balanced)
 quotient = ('Equalizer w/o ACL', base_dir + 'quotient_no_blocked_caps.json')
 caption_paths.append(quotient)
-acl = ('Equalizer w/o Quotient', base_dir + 'blocked_loss_w10_ft_incep_no_sum.json')
+acl = ('Equalizer w/o Confident', base_dir + 'blocked_loss_w10_ft_incep_no_sum.json')
 caption_paths.append(acl)
 acl_conq = ('Equalizer', base_dir + 'quotient_loss_500k_iters.json')
 caption_paths.append(acl_conq)
