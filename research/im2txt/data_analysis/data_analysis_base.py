@@ -318,7 +318,22 @@ class AnalysisBaseClass:
         print correct / (incorrect+correct)
 
     @staticmethod
-    def bias_amplification_objects(mscoco_words, synonym_dict, predictions):
+    def bias_amplification_objects(predictions):
+
+        #Read in MSCOCO synonyms from synonyms.txt and pre-computed object
+        #labels for each image.
+
+        synonym_file = '../data/synonyms.txt'
+        synonym_list = open(synonym_file).readlines()
+        synonym_list = [line.strip().split(', ') for line in synonym_list]
+
+        synonym_dict = {}
+        mscoco_words = []
+        for item in synonym_list:
+            if 'person' != item[0]:
+                for i in item:
+                    synonym_dict[i] = item[0]
+                mscoco_words.extend(item) 
 
         labels = pickle.load(open('../data/gt_labels.p', 'rb'))
 
@@ -390,22 +405,20 @@ class AnalysisBaseClass:
         return output_dict
 
     @staticmethod
-    def bias_amplification_objects_stats(gt, filter_imgs=None):
+    def bias_amplification_objects_stats(gt_path, filter_imgs=[]):
 
-        synonym_file = '../data/synonyms.txt'
-        synonym_list = open(synonym_file).readlines()
-        synonym_list = [line.strip().split(', ') for line in synonym_list]
+        '''
+        Computes bias amplification for baseline and Equalizer captions.
+        Inputs:
+              gt_path:  Path to ground truth captions
+              filter_imgs: List of image ids.
+        Outputs:
+              bias amplification numbers as described in ``Object Gender Co-Occurrence''  
+        '''
 
-        synonym_dict = {}
-        mscoco_words = []
-        for item in synonym_list:
-            if 'person' != item[0]:
-                for i in item:
-                    synonym_dict[i] = item[0]
-                mscoco_words.extend(item) 
-
+        gt = AnalysisBaseClass.format_gt_captions(gt_path)
         gt = [item for item in gt if item['image_id'] in filter_imgs]
-        gt_output = AnalysisBaseClass.bias_amplification_objects(mscoco_words, synonym_dict, gt)
+        gt_output = AnalysisBaseClass.bias_amplification_objects(gt)
 
         caption_paths_local = [caption_path for caption_path in caption_paths if 
                                caption_path[0] in ['Baseline-FT', 'Equalizer']]
@@ -413,7 +426,7 @@ class AnalysisBaseClass:
 
             predictions = json.load(open(caption_path[1]))
             captions = [item for item in predictions if item['image_id'] in filter_imgs]
-            gen_output = AnalysisBaseClass.bias_amplification_objects(mscoco_words, synonym_dict, captions)
+            gen_output = AnalysisBaseClass.bias_amplification_objects(captions)
     
             #get absolute mean of difference
     

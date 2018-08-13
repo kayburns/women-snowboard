@@ -23,4 +23,4 @@ gt_captions = analysis_computer.format_gt_captions('../data/captions_val2014.jso
 #print('dev')
 #analysis_computer.bias_amplification_objects_stats(gt_captions, shopping_dev_split_ids)
 print('test')
-analysis_computer.bias_amplification_objects_stats(gt_captions, shopping_test_split_ids)
+analysis_computer.bias_amplification_objects_stats('../data/captions_val2014.json', shopping_test_split_ids)
