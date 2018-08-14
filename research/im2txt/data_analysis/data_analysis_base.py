@@ -107,6 +107,35 @@ class AnalysisBaseClass:
         return man_count, woman_count, other_count, ratio 
 
     @staticmethod
+    def get_error(predictions, label_dict, 
+                  man_word_list=['man'], woman_word_list=['woman']):
+        
+        num_incorrect = 0.
+        num_gendered = 0.
+        for prediction in predictions:
+            sentence_words = nltk.word_tokenize(prediction['caption'].lower())
+            pred_man = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                     'man', 
+                                                     man_word_list, 
+                                                     woman_word_list)
+            pred_woman = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                       'woman', 
+                                                       man_word_list, 
+                                                       woman_word_list)
+            pred_other = ((not pred_man) and (not pred_woman)) or (pred_man and pred_woman)
+            pred_other = ((not pred_man) and (not pred_woman)) or (pred_man and pred_woman)
+            gt_man = bool(label_dict[prediction['image_id']]['male']) 
+            gt_woman = bool(label_dict[prediction['image_id']]['female'])
+
+            #among examples where gender predicted, how frequently incorrect
+            if (pred_man != gt_man) and (pred_woman != gt_woman) and (not pred_other):
+                num_incorrect += 1  
+            if not pred_other:
+                num_gendered += 1
+
+        return num_incorrect/num_gendered
+
+    @staticmethod
     def accuracy_per_model(predicted, man_word_list=['man'], woman_word_list=['woman'], filter_imgs=None, img_2_anno_dict_simple=None):
         """
         Prints accuracy of predictions.
@@ -354,7 +383,8 @@ class AnalysisBaseClass:
         print correct / (incorrect+correct)
 
     @staticmethod
-    def biased_objects(gt_path, filter_imgs=[], models_to_test=['Baseline-FT', 'Equalizer w/o ACL', 'Equalizer w/o Confident', 'Equalizer']):
+    def biased_objects(gt_path, filter_imgs=[], 
+                       models_to_test=['Baseline-FT', 'Equalizer w/o ACL', 'Equalizer w/o Confident', 'Equalizer']):
         '''
         Compute error and ratio for individual biased objects.  
         Should replicate results in Table 1 of supplemental.
@@ -378,11 +408,12 @@ class AnalysisBaseClass:
             gt_filtered = [item for item in gt \
                                if item['image_id'] in (set(filter_imgs) & set(anno_ids))]
             print "Model: GT"
-            import pdb; pdb.set_trace()
-            _, _, _, gt_ratio = \
-                          AnalysisBaseClass.get_gender_count(gt_filtered, 
-                                            AnalysisBaseClass.man_word_list_synonyms, 
-                                            AnalysisBaseClass.woman_word_list_synonyms)
+            gender_dict = AnalysisBaseClass.img_2_anno_dict_simple
+            gt_man = sum([1. for item in gt_filtered if \
+                          gender_dict[item['image_id']]['male'] == 1])
+            gt_woman = sum([1. for item in gt_filtered if \
+                          gender_dict[item['image_id']]['female'] == 1])
+            gt_ratio = gt_woman/gt_man
 
             for caption_path in caption_paths_local:
                 print "Model: %s" %caption_path[0]
@@ -394,6 +425,12 @@ class AnalysisBaseClass:
                                             AnalysisBaseClass.man_word_list_synonyms, 
                                             AnalysisBaseClass.woman_word_list_synonyms)
                 print "Delta ratio: %0.04f" %(np.abs(ratio-gt_ratio)) 
+
+                error = AnalysisBaseClass.get_error(captions, gender_dict,
+                                            AnalysisBaseClass.man_word_list_synonyms, 
+                                            AnalysisBaseClass.woman_word_list_synonyms)
+                print "Error: %0.04f" %error 
+        import pdb; pdb.set_trace()
 
     @staticmethod
     def bias_amplification_objects(predictions):
