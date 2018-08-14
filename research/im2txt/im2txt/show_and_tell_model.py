@@ -46,13 +46,20 @@ except:
     vocab_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/im2txt/data/word_counts_fresh.txt'
     vocab = vocabulary.Vocabulary(vocab_file) 
 
-#CHANGE FOR REBUTTAL
-#confusion_words = ['man', 'woman']
-confusion_words = [['man'], ['woman']]  #run for debugging
-man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
-woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
-#confusion_words = [man_word_list_synonyms, woman_word_list_synonyms] #for rebuttal experiment
-#confusion_word_idx = [vocab.word_to_id(word) for word in confusion_words]
+#sanity check on vocabulary words
+assert vocab.word_to_id('man') == 11
+assert vocab.word_to_id('woman') == 23
+assert vocab.word_to_id('brother') == 6056 
+assert vocab.word_to_id('wife') == 4691
+
+#synonym list used for ECCV 2018 paper
+man_word_list_synonyms = ['man']
+woman_word_list_synonyms = ['woman']
+#Uncomment below if you would like to use more synonyms (see supplemental for more details)
+#man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
+#woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
+
+confusion_words = [man_word_list_synonyms, woman_word_list_synonyms] #for rebuttal experiment
 confusion_word_idx = [[vocab.word_to_id(word) for word in confusion_word_set] for confusion_word_set in confusion_words]
 all_confusion_idx = confusion_word_idx[0] + confusion_word_idx[1] #useful for blocking
 assert len(confusion_word_idx) == 2  
