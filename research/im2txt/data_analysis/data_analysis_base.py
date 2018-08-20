@@ -5,6 +5,8 @@ import os, sys
 import json, pickle, collections
 import nltk
 from bias_detection import create_dict_from_list # TODO consolidate nicely
+from pattern.en import singularize
+import numpy as np
 
 class AnalysisBaseClass:
 
@@ -29,7 +31,7 @@ class AnalysisBaseClass:
         computes the ratio of man to woman.
         """
         all_results = {}
-        for caption_path in caption_paths:
+        for caption_path in self.caption_paths:
             predictions = json.load(open(caption_path[1]))
             model_results, _ = AnalysisBaseClass.accuracy_per_model(
                 predictions,
@@ -51,9 +53,8 @@ class AnalysisBaseClass:
         truth captions is greater than the confidence threshold
         and a gender neutral word otherwise.
         """
-        for caption_path in caption_paths:
+        for caption_path in self.caption_paths:
             for confidence in range(1,6):
-            # for confidence in [4]:
                 print("Model name: %s, Confidence Level: %d"
                     %(caption_path[0], confidence)
                 )
@@ -71,6 +72,73 @@ class AnalysisBaseClass:
     ###############################################
     ###  Helpers (metrics over predicted set)  ####
     ###############################################
+
+    @staticmethod
+    def get_gender_count(
+        predictions, man_word_list=['man'], woman_word_list=['woman']
+    ):
+        '''
+        Get gender count and ratios for predicted sentences.
+        '''
+   
+        man_count, woman_count, other_count = 0., 0., 0.
+
+        for prediction in predictions:
+            sentence_words = nltk.word_tokenize(prediction['caption'].lower())
+            pred_man = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                     'man', 
+                                                     man_word_list, 
+                                                     woman_word_list)
+            pred_woman = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                       'woman', 
+                                                       man_word_list, 
+                                                       woman_word_list)
+        
+            if pred_man & pred_woman:
+                other_count += 1
+            elif pred_man: 
+                man_count += 1  
+            elif pred_woman: 
+                woman_count += 1  
+            else: 
+                other_count += 1  
+
+        ratio = woman_count/(man_count + 1e-5)
+        print "Man count\tWoman count\tOther count\tWoman:Man ratio"
+        print "%d\t%d\t%d\t%0.05f" %(man_count, woman_count, 
+                                    other_count, ratio)
+
+        #return man_count, woman_count, other_count, ratio
+        return man_count, woman_count, other_count, ratio 
+
+    @staticmethod
+    def get_error(predictions, label_dict, 
+                  man_word_list=['man'], woman_word_list=['woman']):
+        
+        num_incorrect = 0.
+        num_gendered = 0.
+        for prediction in predictions:
+            sentence_words = nltk.word_tokenize(prediction['caption'].lower())
+            pred_man = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                     'man', 
+                                                     man_word_list, 
+                                                     woman_word_list)
+            pred_woman = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                       'woman', 
+                                                       man_word_list, 
+                                                       woman_word_list)
+            pred_other = ((not pred_man) and (not pred_woman)) or (pred_man and pred_woman)
+            pred_other = ((not pred_man) and (not pred_woman)) or (pred_man and pred_woman)
+            gt_man = bool(label_dict[prediction['image_id']]['male']) 
+            gt_woman = bool(label_dict[prediction['image_id']]['female'])
+
+            #among examples where gender predicted, how frequently incorrect
+            if (pred_man != gt_man) and (pred_woman != gt_woman) and (not pred_other):
+                num_incorrect += 1  
+            if not pred_other:
+                num_gendered += 1
+
+        return num_incorrect/num_gendered
 
     @staticmethod
     def accuracy_per_model(
@@ -312,6 +380,182 @@ class AnalysisBaseClass:
         # print "%f\t%f\t%f\t%f" % (male_tpr, male_fpr, female_tpr, female_fpr)
         print correct / (incorrect+correct)
 
+    @staticmethod
+    def biased_objects(gt_path, filter_imgs=[], 
+                       models_to_test=['Baseline-FT', 'Equalizer w/o ACL', 'Equalizer w/o Confident', 'Equalizer']):
+        '''
+        Compute error and ratio for individual biased objects.  
+        Should replicate results in Table 1 of supplemental.
+        '''
+
+        caption_paths_local = [caption_path for caption_path in self.caption_paths if 
+                               caption_path[0] in models_to_test]
+
+        bias_words = ['umbrella', 'kitchen', 'cell', 'table', 'food', 'skateboard', 'baseball', 'tie', 'motorcycle', 'snowboard']
+
+        gt = AnalysisBaseClass.format_gt_captions(gt_path)
+
+        for bias_word in bias_words:
+
+            print "Bias word is: %s" %bias_word
+            anno_ids = open('../data/object_lists/intersection_%s_person.txt' %bias_word).readlines()
+            anno_ids = [int(anno_id) for anno_id in anno_ids]
+
+            #TODO: get numbers for GT
+
+            gt_filtered = [item for item in gt \
+                               if item['image_id'] in (set(filter_imgs) & set(anno_ids))]
+            print "Model: GT"
+            gender_dict = AnalysisBaseClass.img_2_anno_dict_simple
+            gt_man = sum([1. for item in gt_filtered if \
+                          gender_dict[item['image_id']]['male'] == 1])
+            gt_woman = sum([1. for item in gt_filtered if \
+                          gender_dict[item['image_id']]['female'] == 1])
+            gt_ratio = gt_woman/gt_man
+
+            for caption_path in caption_paths_local:
+                print "Model: %s" %caption_path[0]
+                predictions = json.load(open(caption_path[1]))
+                captions = [item for item in predictions \
+                            if item['image_id'] in set(filter_imgs) & set(anno_ids)]
+                _, _, _, ratio = \
+                          AnalysisBaseClass.get_gender_count(captions, 
+                                            AnalysisBaseClass.man_word_list_synonyms, 
+                                            AnalysisBaseClass.woman_word_list_synonyms)
+                print "Delta ratio: %0.04f" %(np.abs(ratio-gt_ratio)) 
+
+                error = AnalysisBaseClass.get_error(captions, gender_dict,
+                                            AnalysisBaseClass.man_word_list_synonyms, 
+                                            AnalysisBaseClass.woman_word_list_synonyms)
+                print "Error: %0.04f" %error 
+        import pdb; pdb.set_trace()
+
+    @staticmethod
+    def bias_amplification_objects(predictions):
+
+        #Read in MSCOCO synonyms from synonyms.txt and pre-computed object
+        #labels for each image.
+
+        synonym_file = '../data/synonyms.txt'
+        synonym_list = open(synonym_file).readlines()
+        synonym_list = [line.strip().split(', ') for line in synonym_list]
+
+        synonym_dict = {}
+        mscoco_words = []
+        for item in synonym_list:
+            if 'person' != item[0]:
+                for i in item:
+                    synonym_dict[i] = item[0]
+                mscoco_words.extend(item) 
+
+        labels = pickle.load(open('../data/gt_labels.p', 'rb'))
+
+        man_count = collections.defaultdict(int) 
+        woman_count = collections.defaultdict(int)
+        gt_all_count = collections.defaultdict(int)
+
+        for count_p, prediction in enumerate(predictions):
+    
+            sys.stdout.write("\r%d/%d" %(count_p, len(predictions)))
+
+            sentence_words = nltk.word_tokenize(prediction['caption'].lower().strip('.'))
+            pred_male = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                      'man', 
+                                                      AnalysisBaseClass.man_word_list_synonyms, 
+                                                      AnalysisBaseClass.woman_word_list_synonyms)    
+            pred_female = AnalysisBaseClass.is_gendered(sentence_words, 
+                                                        'woman', 
+                                                        AnalysisBaseClass.man_word_list_synonyms, 
+                                                        AnalysisBaseClass.woman_word_list_synonyms)
+
+            sentence_words = [singularize(word) for word in sentence_words]
+            num_words = len(sentence_words) - 1
+
+            #This is to account for words like "hot dog".
+            for i in range(num_words):
+                sentence_words.append(' '.join([sentence_words[i], sentence_words[i+1]]))
+            #which words are both in setence and mscoco objects
+            count_words = list(set(sentence_words) & set(mscoco_words))        
+     
+            for word in count_words:
+                if pred_male:
+                    man_count[synonym_dict[word]] += 1
+                if pred_female:
+                    woman_count[synonym_dict[word]] += 1
+            for word in set(labels['labels'][prediction['image_id']]):
+                gt_all_count[word] += 1 
+
+        output_dict = {}
+        output_dict['man'] = {}
+        output_dict['woman'] = {}
+
+        print "Bias amplification (comparison to man):"
+        b = 0.
+        count = 0
+        for word in set(synonym_dict.values()):        
+            #print "%s\t%0.03f" %(word, man_count/(man_count+woman_count+ 0.0005))
+            if gt_all_count[word] > 0: 
+                bb =  man_count[word]/(gt_all_count[word]+0.0005)
+                output_dict['man'][word] = bb
+                print "%s\t%0.03f" %(word, bb)
+
+            b += bb 
+            count += 1
+        print "%0.03f" %(b/count) 
+ 
+        print "Bias amplification (comparison to woman):"
+        b = 0.
+        count = 0
+        for word in set(synonym_dict.values()):        
+            if gt_all_count[word] > 0: 
+                bb =  woman_count[word]/(gt_all_count[word]+0.0005)
+                output_dict['woman'][word] = bb
+                print "%s\t%0.03f" %(word, bb)
+            b += bb 
+            count += 1
+        print "%0.03f" %(b/count) 
+   
+        return output_dict
+
+    @staticmethod
+    def bias_amplification_objects_stats(gt_path, filter_imgs=[],
+                                         models_to_test=['Baseline-FT', 'Equalizer']):
+
+        '''
+        Computes bias amplification for baseline and Equalizer captions.
+        Inputs:
+              gt_path:  Path to ground truth captions
+              filter_imgs: List of image ids.
+        Outputs:
+              bias amplification numbers as described in ``Object Gender Co-Occurrence''  
+        '''
+
+        gt = AnalysisBaseClass.format_gt_captions(gt_path)
+        gt = [item for item in gt if item['image_id'] in filter_imgs]
+        gt_output = AnalysisBaseClass.bias_amplification_objects(gt)
+
+        caption_paths_local = [caption_path for caption_path in self.caption_paths if 
+                               caption_path[0] in models_to_test]
+        for caption_path in caption_paths_local:
+
+            predictions = json.load(open(caption_path[1]))
+            captions = [item for item in predictions if item['image_id'] in filter_imgs]
+            gen_output = AnalysisBaseClass.bias_amplification_objects(captions)
+    
+            #get absolute mean of difference
+    
+            print ("Average bias amplification across objects for man for caption model %s: " %caption_path[0])
+            obj_diffs = []
+            for obj in gt_output['man']:
+                obj_diffs.append(np.abs(gt_output['man'][obj] - gen_output['man'][obj]))
+            print ("Average bias amplification for man: %0.04f" %(np.mean(obj_diffs))) 
+    
+            print ("Average bias amplification across objects for woman for caption model %s: " %caption_path[0])
+            obj_diffs = []
+            for obj in gt_output['woman']:
+                obj_diffs.append(np.abs(gt_output['woman'][obj] - gen_output['woman'][obj]))
+            print ("Average bias amplification for woman: %0.04f" %(np.mean(obj_diffs))) 
+
     ###############################################
     ########             Utils             ########
     ###############################################
@@ -342,7 +586,7 @@ class AnalysisBaseClass:
         'artist', 'citizen', 'youths', 'staff', 'biker', 'technician', 'hand',
         'baker', 'fans', 'they', 'manager', 'plumber', 'hands',
         'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
-    anno_dir = '/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
+    anno_dir = '../data/'
     target_train = os.path.join(anno_dir, 'train.data')
     target_val = os.path.join(anno_dir, 'dev.data')
     target_test = os.path.join(anno_dir, 'test.data')
@@ -418,7 +662,7 @@ class AnalysisBaseClass:
 
     @staticmethod
     def get_shopping_split(
-        fpath='/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/dev.data'
+        fpath='../data/dev.data'
     ):
         # TODO: move all data to one location and store dir as attribute
         """Returns desired split from men also like shopping as a list of filenames."""
@@ -441,7 +685,7 @@ class AnalysisBaseClass:
     )
     img_2_anno_dict_simple = simplify_anno_dict.__func__(img_2_anno_dict) # bleh
     # fetch ground truth captions and store in dict mapping id : caps
-    gt_path = '/data1/coco/annotations_trainval2014/captions_only_valtrain2014.json'
+    gt_path = '../data/captions_only_valtrain2014.json'
     gt_caps_list = json.load(open(gt_path))['annotations']
     gt_caps = collections.defaultdict(list)
     for cap in gt_caps_list:
@@ -473,72 +717,3 @@ class AnalysisBaseClass:
                 conf_ids.append(image_id)
         return conf_ids
 
-
-# TODO: make attribute of class
-#caption paths
-#all models
-caption_paths = []
-base_dir = ''
-#base_dir = '/home/lisaanne/lev/'
-#normal_training = ('normal training', base_dir + '/data1/caption_bias/models/research/im2txt/val_cap.json')
-#caption_paths.append(normal_training)
-#acl_nosum_ce = ('ACL (10) - no sum (CE)', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/train_blocked_ce.json')
-#caption_paths.append(acl_nosum_ce)
-# full_gender_set = ('full gender set', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/equalizer_all_gender_words.json')
-# caption_paths.append(full_gender_set)
-#baseline_ft_inception = ('baseline ft inception', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/ft_incep_captions_500k_bias_split.json')
-#caption_paths.append(baseline_ft_inception)
-#uw = ('uw 10x', base_dir + '/data2/caption-bias/result_jsons/LW10_ft-inception-fresh.json')
-#caption_paths.append(uw)
-#balanced = ('balanced', base_dir + '/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json')
-#caption_paths.append(balanced)
-#acl = ('acl', base_dir + '/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json')
-#caption_paths.append(acl)
-#acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
-#caption_paths.append(acl_conq)
-#acl_conq_uw = ('ACL Con-Q UW', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/confusiont_quotient_UW.json')
-#caption_paths.append(acl_conq_uw)
-#acl_uw = ('ACL UW', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/train_blocked_U_10.json')
-#caption_paths.append(acl_uw)
-#acl_uw_ce = ('ACL UW CE', base_dir + '/data2/caption-bias/result_jsons/blocked_ce_LW10_ft-inception-fresh-iter1.500k.json')
-#caption_paths.append(acl_uw_ce)
-#quotient_uw = ('quotient UW', base_dir +'/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_UW_10_500k_caps.json')
-#caption_paths.append(quotient_uw)
-#pytorch_model = ('pytorch_model', '/home/lisaanne/projects/sentence-generation/results/output.45950.ft-all-set.loss-acl10.ce-blocked.json')
-#caption_paths.append(pytorch_model)
-# uw_man5_woman15 = ('uw_man5_woman15', base_dir + '/data2/caption-bias/result_jsons/uw-man5-woman15_ft-inception-fresh.json')
-# caption_paths.append(uw_man5_woman15)
-
-#caption_paths = []
-#base_dir = '/home/lisaanne/lev/'
-baseline_ft_inception = ('baseline ft inception', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/ft_incep_captions_500k_bias_split.json')
-caption_paths.append(baseline_ft_inception)
-uw = ('uw 10x', base_dir + '/data2/caption-bias/result_jsons/LW10_ft-inception-fresh.json')
-caption_paths.append(uw)
-balanced = ('balanced', base_dir + '/data2/caption-bias/result_jsons/balance_man_woman_ft_inception.json')
-caption_paths.append(balanced)
-quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
-caption_paths.append(quotient)
-acl = ('acl', base_dir + '/data2/caption-bias/result_jsons/blocked_loss_w10_ft_incep_no_sum.json')
-caption_paths.append(acl)
-acl_conq = ('ACL Con-Q', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_loss_500k_iters.json')
-caption_paths.append(acl_conq)
-
-quotient_5 = ('quotient .5', base_dir+'/data2/caption-bias/result_jsons/confusion_0.5.json')
-caption_paths.append(quotient_5)
-
-acl_10_quotient_5 = ('acl 10, quotient .5', base_dir+'/data2/caption-bias/result_jsons/confusion_0.5_acl10.json')
-caption_paths.append(acl_10_quotient_5)
-
-#quotient = ('quotient', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/captions/quotient_no_blocked_caps.json')
-#caption_paths.append(quotient)
-
-# rebuttal captions
-#equalizer = ('equalizer', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_retest.json')
-#caption_paths.append(equalizer)
-
-all_gender_words = ('equalizer trained with larger set of gender words', base_dir + '/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/equalizer_all_gender_words.json')
-caption_paths.append(all_gender_words)
-
-# pairs = ('equalizer loss with coco images without people', base_dir+'/data2/kaylee/caption_bias/models/research/im2txt/rebuttal_captions/selective_pairs.json')
-# caption_paths.append(pairs)
