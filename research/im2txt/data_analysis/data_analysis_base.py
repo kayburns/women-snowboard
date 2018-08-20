@@ -24,18 +24,22 @@ class AnalysisBaseClass:
     
     def accuracy(self, filter_imgs=None):
         """
-        Print accuracy breakdown for all caption paths. 
+        Returns a dictionary mapping model name to result dictionary. For each
+        model, computes accuracy breakdown per class and across classes. Also
+        computes the ratio of man to woman.
         """
+        all_results = {}
         for caption_path in caption_paths:
-            #print("Model name: %s" %caption_path[0])
-            sys.stdout.write('%s\t'%caption_path[0])
-            sys.stdout.flush()
             predictions = json.load(open(caption_path[1]))
-            AnalysisBaseClass.accuracy_per_model(predictions,
+            model_results, _ = AnalysisBaseClass.accuracy_per_model(
+                predictions,
                 AnalysisBaseClass.man_word_list_synonyms,
                 AnalysisBaseClass.woman_word_list_synonyms,
                 filter_imgs,
-                AnalysisBaseClass.img_2_anno_dict_simple)
+                AnalysisBaseClass.img_2_anno_dict_simple
+            )
+            all_results[caption_path[0]] = model_results
+        return all_results
    
     def retrieve_accuracy_with_confidence(self, filter_imgs=None):
         """
@@ -69,9 +73,12 @@ class AnalysisBaseClass:
     ###############################################
 
     @staticmethod
-    def accuracy_per_model(predicted, man_word_list=['man'], woman_word_list=['woman'], filter_imgs=None, img_2_anno_dict_simple=None):
+    def accuracy_per_model(
+        predicted, man_word_list=['man'], woman_word_list=['woman'],
+        filter_imgs=None, img_2_anno_dict_simple=None
+    ):
         """
-        Prints accuracy of predictions.
+        Returns accuracy breakdown and ratio of predictions.
         
         Args:
             predicted: list of dictionaries keyed by 'image_id' and 'caption'.
@@ -80,7 +87,8 @@ class AnalysisBaseClass:
             filter_imgs: list of images (as integer id) to include in calculation.
                 if None, include all of predicted.
 
-        Returns: dictionary of images organized by gt x pred label
+        Returns: tuple containing result dictionoary and dictionary of images
+            organized by gt x pred label
         """
 
         f_tp = 0.
@@ -155,32 +163,21 @@ class AnalysisBaseClass:
             if male:
                 m_total += 1
 
-        ratio = (f_tp + f_fp)/(m_tp + m_fp)
-        """
-        print "Of female images:"
-        print "Man predicted %f percent." %(m_fp/f_total)
-        print "Woman predicted %f percent." %(f_tp/f_total)
-        print "Other predicted %f percent." %(f_other/f_total)
-        print "%f	%f	%f" % (m_fp/f_total, f_tp/f_total, f_other/f_total)
-        
-        print "Of male images:"
-        print "Man predicted %f percent." %(m_tp/m_total)
-        print "Woman predicted %f percent." %(f_fp/m_total)
-        print "Other predicted %f percent." %(m_other/m_total)
-        print "%f	%f	%f"% (m_tp/m_total, f_fp/m_total, m_other/m_total)
-        """
-        print "Of total:"
-        print "Correct %f percent." %((m_tp+f_tp)/(m_total+f_total))
-        print "Incorect %f percent." %((m_fp+f_fp)/(m_total+f_total))
-        print "Other predicted %f percent." %((f_other+m_other)/(m_total+f_total))
-        print "%f	%f	%f"% ((m_tp+f_tp)/(m_total+f_total), (m_fp+f_fp)/(m_total+f_total), (m_other+f_other)/(f_total+m_total))
+        ratio = (f_tp + f_fp) / (m_tp + m_fp)
 
-        print "ratio", ratio
-        
-        print "%f\t%f\t%f\t%f\t%f\t%f\t%f" % (f_tp/f_total, m_fp/f_total, f_other/f_total, m_tp/m_total, f_fp/m_total, m_other/m_total, ratio)
-        #print "Percent of other with Person (M, W): %f\t%f" % (m_person / m_other, f_person / f_other)
-        # print "%f\t%f" % ((m_fp + f_fp)/(m_total+f_total), ratio) 
-        # print f_total/m_total
+        results = {}
+        results['male_correct'] = m_tp/m_total
+        results['male_incorrect'] = f_fp/m_total
+        results['male_other'] =  m_other/m_total
+        results['female_correct'] = f_tp/f_total
+        results['female_incorrect'] = m_fp/f_total
+        results['female_other'] = f_other/f_total
+        results['all_correct'] = (m_tp+f_tp)/(m_total+f_total)
+        results['all_incorrect'] = (m_fp+f_fp)/(m_total+f_total)
+        results['all_other'] = (m_other+f_other)/(f_total+m_total)
+        results['ratio'] = ratio
+        results['gt_ratio'] = f_total/m_total
+
         pred_images = {}
         pred_images['male_pred_male'] = male_pred_male
         pred_images['female_pred_female'] = female_pred_female
@@ -189,7 +186,7 @@ class AnalysisBaseClass:
         pred_images['male_pred_other'] = male_pred_other
         pred_images['female_pred_other'] = female_pred_other
         
-        return pred_images
+        return (results, pred_images)
 
     @staticmethod
     def retrieve_accuracy_with_confidence_per_model(
