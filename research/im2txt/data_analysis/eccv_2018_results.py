@@ -14,7 +14,7 @@ def parse_args():
         action='append',
         required=True,
         help='List of experiments to run. Options: table_1_main, table_2_main' \
-            ''
+            'table_3_main, figure_3_main, or all for all experiments'
     )
     if len(sys.argv) == 1:
         parser.print_help()
@@ -32,7 +32,7 @@ caption_paths = []
 base_dir = '../final_captions_eccv2018/'
 baseline_ft = ('Baseline-FT', base_dir + 'baseline_ft.json')
 caption_paths.append(baseline_ft)
-uw = ('UpWeight', base_dir + 'LW10_ft-inception-fresh.json')
+uw = ('UpWeight', base_dir + 'upweight.json')
 caption_paths.append(uw)
 balanced = ('Balanced', base_dir + 'balanced.json')
 caption_paths.append(balanced)
@@ -101,21 +101,37 @@ def table_2_main():
             print(model_results['male_other'])
 
 def table_3_main():
+    print("TODO")
+
+def figure_3_main():
     for split_name, id_list in datasets:
         print('---------------------- %s ----------------------' % split_name)
         all_results = analysis_computer.accuracy(id_list)
         analysis_computer.retrieve_accuracy_with_confidence(id_list)
- 
-experiment_functions = {
-    'table_1_main':table_1_main,
-    'table_2_main': table_2_main,
-    'table_3_main': table_2_main
-}
+
+def table_1_supp():
+    for split_name, id_list in datasets:
+        print('---------------------- %s ----------------------' % split_name)
+        analysis_computer.biased_objects(caption_path, id_list)
+
+def table_2_supp():
+    print("TODO")
+
+experiment_functions = OrderedDict([
+    ('table_1_main',table_1_main),
+    ('table_2_main',table_2_main),
+    ('table_3_main',table_3_main),
+    ('figure_3_main',figure_3_main),
+    ('table_1_supp',table_1_supp),
+])
 experiment_names = experiment_functions.keys()
 
 if __name__ == '__main__':
     args = parse_args()
+    if args.experiments[0] == "all":
+        args.experiments = experiment_names
     for experiment in args.experiments:
         if experiment not in experiment_names:
             raise ValueError('please use name in: '+' '.join(experiment_names))
+        print("###################### "+experiment+" ######################")
         experiment_functions[experiment]()
