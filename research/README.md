@@ -1,12 +1,14 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
-This is meant to be internal documentation so that we can easily remember how things work in May (rebuttal time!).  
-When we release the code, we can think about how to succinctly present this for others.
+## Getting Started
+This repository contains everything necessary to replicate the results in our 2018 ECCV paper. We've also released the weights and generated caption from each model. (TODO: link all).
+
+## Training Models
+Training scripts are provided in 
+
+## Running Analysis on Generated COCO Captions
 
 
-## Constructing tfrecords with blocked images:
-
-TODO: Kaylee
 
 ## Flags added to training code:
 
@@ -32,26 +34,17 @@ confusion_word_non_blocked_weight:  Weight for confident loss.
 
 confusion_word_non_blocked_type: Type for confident loss (we use type quotient for our ECCV experiments). 
 
-
-## Running GradCam
-
-TODO for Anja
-
-## Running Saliency Code
-
-TODO for Lisa/Kaylee
-
-## Running Data Analysis
-
-See the folder im2txt/data_analysis for data analysis scripts.
-
-## Auxiliary Scripts
-
-Creating blocked images: scripts/SegmentationMasks.ipynb
-
-Creating gt segmentation masks: TODO for Anja
+## Tools and Scripts 
 
 Creation of different subsets:
 
-To create "confident subset", see scripts/make_confident_set.py
-For amplification bias of diccerent nouns, see "find_bigrams.py" 
+To create "confident subset", see `scripts/make_confident_set.py`
+For amplification bias of diccerent nouns, see `find_bigrams.py`
+
+## TODO
+[] constructing tfrecords with blocked images (Kaylee)
+[] running GradCam (Anja). add to `models/research/im2txt/data_analysis/eccv_results_2018.py`
+[] saliency code (Kaylee)
+[] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script (Kaylee)
+[] Creating gt segmentation masks (Anja)
+
