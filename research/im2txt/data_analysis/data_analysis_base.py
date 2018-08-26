@@ -1,10 +1,7 @@
-"""
-Common code shared across data analysis scripts. Please run me in python 2.
-"""
+"""Common code shared across data analysis scripts."""
 import os, sys
 import json, pickle, collections
 import nltk
-from bias_detection import create_dict_from_list # TODO consolidate nicely
 from pattern.en import singularize
 import numpy as np
 
@@ -17,13 +14,68 @@ class AnalysisBaseClass:
     path are stored as static methods, shared by all
     instances.
     """
+    
+    man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', \
+        'groom', 'male','guy', 'men', 'males', 'boys', 'guys', 'dads', 'dude', \
+        'policeman', 'policemen', 'father', 'son', 'fireman', 'actor', \
+        'gentleman', 'boyfriend', 'mans', 'his', 'obama', 'actors']
+    woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', \
+        'bride', 'female', 'lady', 'women', 'girls', 'ladies', 'females', \
+        'moms', 'actress', 'nun', 'girlfriend', 'her', 'she']
+    person_word_list_synonyms = ['person', 'child', 'kid', 'teenager', \
+        'someone', 'player', 'rider', 'people', 'crowd', 'skiier', \
+        'snowboarder', 'surfer', 'children', 'hipster', 'bikder', 'bikers', \
+        'skiiers', 'snowboarders', 'surfers', 'chef', 'chefs', 'family', \
+        'skateboarder', 'skateboarders', 'adult', 'adults', 'baby', 'babies', \
+        'skiers', 'skier', 'diver', 'divers', 'bicycler', 'bicyclists', \
+        'friends', 'kids', 'hikers', 'hiker', 'student', 'students', \
+        'teenagers', 'riders', 'shopper', 'cyclist', 'officer', 'pedestrians', \
+        'teen', 'worker', 'passenger', 'passengers', 'cook', 'cooks', \
+        'officers', 'persons', 'workers', 'pedestrian', 'employee', \
+        'employees', 'driver', 'cyclists', 'skater', 'skaters', 'toddler', \
+        'fighter', 'patrol', 'patrols', 'cop', 'couple', 'server', 'carrier', \
+        'player', 'players', 'motorcyclist', 'motorcyclists', 'youngsters', \
+        'carpenter', 'owner', 'owners', 'individual', 'bicyclists', \
+        'bicyclist', 'group', 'boarder', 'boarders', 'boater', 'painter', \
+        'artist', 'citizen', 'youths', 'staff', 'biker', 'technician', 'hand', \
+        'baker', 'fans', 'they', 'manager', 'plumber', 'hands', \
+        'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
+    anno_dir = '../data/'
+    target_train = os.path.join(anno_dir, 'train.data')
+    target_val = os.path.join(anno_dir, 'dev.data')
+    target_test = os.path.join(anno_dir, 'test.data')
 
     def __init__(self, caption_paths):
         """
         caption_paths -- paths to captions that need to be analyzed
         """
         self.caption_paths = caption_paths
-    
+        # create annotation dictionary and simplified anno dict
+        img_2_anno_dict = AnalysisBaseClass.create_dict_from_list(
+            pickle.load(open(AnalysisBaseClass.target_train, 'rb'))
+        )
+        img_2_anno_dict.update(
+            AnalysisBaseClass.create_dict_from_list(
+                pickle.load(open(AnalysisBaseClass.target_test, 'rb'))
+            )
+        )
+        img_2_anno_dict.update(
+            AnalysisBaseClass.create_dict_from_list(
+                pickle.load(open(AnalysisBaseClass.target_val, 'rb'))
+            )
+        )
+        img_2_anno_dict_simple = AnalysisBaseClass.simplify_anno_dict(
+            img_2_anno_dict
+        )
+        self.img_2_anno_dict = img_2_anno_dict
+        self.img_2_anno_dict_simple = img_2_anno_dict_simple
+
+    gt_path = '../data/captions_only_valtrain2014.json'
+    gt_caps_list = json.load(open(gt_path))['annotations']
+    gt_caps = collections.defaultdict(list)
+    for cap in gt_caps_list:
+        gt_caps[int(cap['image_id'])].append(cap['caption'])
+
     def accuracy(self, filter_imgs=None):
         """
         Returns a dictionary mapping model name to result dictionary. For each
@@ -38,36 +90,43 @@ class AnalysisBaseClass:
                 AnalysisBaseClass.man_word_list_synonyms,
                 AnalysisBaseClass.woman_word_list_synonyms,
                 filter_imgs,
-                AnalysisBaseClass.img_2_anno_dict_simple
+                self.img_2_anno_dict_simple
             )
             all_results[caption_path[0]] = model_results
         return all_results
    
     def retrieve_accuracy_with_confidence(self, filter_imgs=None):
         """
-        Print the recall for the correct label over different
-        levels of confidence for all caption paths.
+        Calculate the recall for the correct label over different levels of
+        confidence for all caption paths.
 
-        The correct label for a caption
-        is the gender annotation when the number of ground
-        truth captions is greater than the confidence threshold
-        and a gender neutral word otherwise.
+        When the number of ground truth captions for an image meets the
+        specified confidence threshold, the correct label is the gender.
+        Otherwise, correct label is other or no gender.
+
+        Returns dictionary mapping model names to a list with accuracy at
+        different levels of confidence.
+        
+        e.g. [all_results]['path'][k] is the accuracy of captions at 'path'
+        computed with confidence k+1
         """
+        all_results = {}
         for caption_path in self.caption_paths:
+            model_results = []
             for confidence in range(1,6):
-                print("Model name: %s, Confidence Level: %d"
-                    %(caption_path[0], confidence)
-                )
-                sys.stdout.write('%s\t'%caption_path[0])
-                sys.stdout.flush()
                 predictions = json.load(open(caption_path[1]))
-                AnalysisBaseClass.retrieve_accuracy_with_confidence_per_model(
-                    predictions,
-                    confidence,
-                    AnalysisBaseClass.man_word_list_synonyms,
-                    AnalysisBaseClass.woman_word_list_synonyms,
-                    filter_imgs=filter_imgs
+                model_results.append(
+                    AnalysisBaseClass.retrieve_accuracy_with_confidence_per_model(
+                        predictions,
+                        confidence,
+                        self.img_2_anno_dict_simple,
+                        AnalysisBaseClass.man_word_list_synonyms,
+                        AnalysisBaseClass.woman_word_list_synonyms,
+                        filter_imgs=filter_imgs
+                    )
                 )
+            all_results[caption_path[0]] = model_results
+        return all_results
 
     ###############################################
     ###  Helpers (metrics over predicted set)  ####
@@ -77,9 +136,9 @@ class AnalysisBaseClass:
     def get_gender_count(
         predictions, man_word_list=['man'], woman_word_list=['woman']
     ):
-        '''
+        """
         Get gender count and ratios for predicted sentences.
-        '''
+        """
    
         man_count, woman_count, other_count = 0., 0., 0.
 
@@ -108,7 +167,6 @@ class AnalysisBaseClass:
         print "%d\t%d\t%d\t%0.05f" %(man_count, woman_count, 
                                     other_count, ratio)
 
-        #return man_count, woman_count, other_count, ratio
         return man_count, woman_count, other_count, ratio 
 
     @staticmethod
@@ -142,8 +200,11 @@ class AnalysisBaseClass:
 
     @staticmethod
     def accuracy_per_model(
-        predicted, man_word_list=['man'], woman_word_list=['woman'],
-        filter_imgs=None, img_2_anno_dict_simple=None
+        predicted,
+        man_word_list=['man'],
+        woman_word_list=['woman'],
+        filter_imgs=None,
+        img_2_anno_dict_simple=None
     ):
         """
         Returns accuracy breakdown and ratio of predictions.
@@ -258,8 +319,12 @@ class AnalysisBaseClass:
 
     @staticmethod
     def retrieve_accuracy_with_confidence_per_model(
-        predicted, confidence_threshold, man_word_list=['man'],
-        woman_word_list=['woman'], filter_imgs=None
+        predicted,
+        confidence_threshold,
+        img_2_anno_dict_simple,
+        man_word_list=['man'],
+        woman_word_list=['woman'],
+        filter_imgs=None
     ):
         correct = 0.
         incorrect = 0.
@@ -272,7 +337,7 @@ class AnalysisBaseClass:
         is_f, is_m = 0., 0.
         total = 0.
 
-        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys())
+        bias_ids = list(img_2_anno_dict_simple.keys())
         for prediction in predicted:
             image_id = prediction['image_id']
 
@@ -281,7 +346,7 @@ class AnalysisBaseClass:
                 if image_id not in filter_imgs:
                     continue
             
-            anno_dict = AnalysisBaseClass.img_2_anno_dict_simple
+            anno_dict = img_2_anno_dict_simple
             if image_id in bias_ids:
                 is_male = anno_dict[image_id]['male']
                 is_female = anno_dict[image_id]['female']
@@ -366,32 +431,25 @@ class AnalysisBaseClass:
         female_tpr = pred_f_is_f / float(is_f)
         female_fpr = pred_f_not_f / float(not_f)
 
+        return correct / (incorrect+correct)
+
+    def biased_objects(
+        self,
+        gt_path,
+        filter_imgs=[], 
+        models_to_test=['Baseline-FT', 'Equalizer w/o ACL', \
+            'Equalizer w/o Confident', 'Equalizer']
+    ):
         """
-        print("Accuracy for Women: %f" % (correct_f / float(correct_f + incorrect_f)))
-        print("Accuracy for Men: %f" % (correct_m / float(correct_m + incorrect_m)))
-        print("Accuracy: %f" % (correct / float(correct + incorrect)))
-
-        print("Men TPR / FPR: %f	%f" % (male_tpr, male_fpr)) 
-        print("Men: %f	%f	%f	%f" % (pred_m_is_m, is_m, pred_m_not_m, not_m))
-        print("Women TPR / FPR: %f	%f" % (female_tpr, female_fpr)) 
-        print("Women: %f	%f	%f	%f" % (pred_f_is_f, is_f, pred_f_not_f, not_f))
+        Compute error and ratio for individual biased objects. Should replicate
+        results in Table 1 of supplemental.
         """
-
-        # print "%f\t%f\t%f\t%f" % (male_tpr, male_fpr, female_tpr, female_fpr)
-        print correct / (incorrect+correct)
-
-    @staticmethod
-    def biased_objects(gt_path, filter_imgs=[], 
-                       models_to_test=['Baseline-FT', 'Equalizer w/o ACL', 'Equalizer w/o Confident', 'Equalizer']):
-        '''
-        Compute error and ratio for individual biased objects.  
-        Should replicate results in Table 1 of supplemental.
-        '''
 
         caption_paths_local = [caption_path for caption_path in self.caption_paths if 
                                caption_path[0] in models_to_test]
 
-        bias_words = ['umbrella', 'kitchen', 'cell', 'table', 'food', 'skateboard', 'baseball', 'tie', 'motorcycle', 'snowboard']
+        bias_words = ['umbrella', 'kitchen', 'cell', 'table', 'food', \
+            'skateboard', 'baseball', 'tie', 'motorcycle', 'snowboard']
 
         gt = AnalysisBaseClass.format_gt_captions(gt_path)
 
@@ -406,7 +464,7 @@ class AnalysisBaseClass:
             gt_filtered = [item for item in gt \
                                if item['image_id'] in (set(filter_imgs) & set(anno_ids))]
             print "Model: GT"
-            gender_dict = AnalysisBaseClass.img_2_anno_dict_simple
+            gender_dict = self.img_2_anno_dict_simple
             gt_man = sum([1. for item in gt_filtered if \
                           gender_dict[item['image_id']]['male'] == 1])
             gt_woman = sum([1. for item in gt_filtered if \
@@ -459,21 +517,27 @@ class AnalysisBaseClass:
             sys.stdout.write("\r%d/%d" %(count_p, len(predictions)))
 
             sentence_words = nltk.word_tokenize(prediction['caption'].lower().strip('.'))
-            pred_male = AnalysisBaseClass.is_gendered(sentence_words, 
-                                                      'man', 
-                                                      AnalysisBaseClass.man_word_list_synonyms, 
-                                                      AnalysisBaseClass.woman_word_list_synonyms)    
-            pred_female = AnalysisBaseClass.is_gendered(sentence_words, 
-                                                        'woman', 
-                                                        AnalysisBaseClass.man_word_list_synonyms, 
-                                                        AnalysisBaseClass.woman_word_list_synonyms)
+            pred_male = AnalysisBaseClass.is_gendered(
+                sentence_words, 
+                'man', 
+                AnalysisBaseClass.man_word_list_synonyms, 
+                AnalysisBaseClass.woman_word_list_synonyms
+            )
+            pred_female = AnalysisBaseClass.is_gendered(
+                sentence_words, 
+                'woman', 
+                AnalysisBaseClass.man_word_list_synonyms, 
+                AnalysisBaseClass.woman_word_list_synonyms
+            )
 
             sentence_words = [singularize(word) for word in sentence_words]
             num_words = len(sentence_words) - 1
 
             #This is to account for words like "hot dog".
             for i in range(num_words):
-                sentence_words.append(' '.join([sentence_words[i], sentence_words[i+1]]))
+                sentence_words.append(
+                    ' '.join([sentence_words[i], sentence_words[i+1]])
+                )
             #which words are both in setence and mscoco objects
             count_words = list(set(sentence_words) & set(mscoco_words))        
      
@@ -493,7 +557,6 @@ class AnalysisBaseClass:
         b = 0.
         count = 0
         for word in set(synonym_dict.values()):        
-            #print "%s\t%0.03f" %(word, man_count/(man_count+woman_count+ 0.0005))
             if gt_all_count[word] > 0: 
                 bb =  man_count[word]/(gt_all_count[word]+0.0005)
                 output_dict['man'][word] = bb
@@ -518,79 +581,57 @@ class AnalysisBaseClass:
         return output_dict
 
     @staticmethod
-    def bias_amplification_objects_stats(gt_path, filter_imgs=[],
-                                         models_to_test=['Baseline-FT', 'Equalizer']):
-
-        '''
+    def bias_amplification_objects_stats(
+        gt_path, filter_imgs=[], models_to_test=['Baseline-FT', 'Equalizer']):
+        """
         Computes bias amplification for baseline and Equalizer captions.
         Inputs:
-              gt_path:  Path to ground truth captions
-              filter_imgs: List of image ids.
+            gt_path:  Path to ground truth captions
+            filter_imgs: List of image ids.
         Outputs:
-              bias amplification numbers as described in ``Object Gender Co-Occurrence''  
-        '''
+            bias amplification numbers as described in
+            ``Object Gender Co-Occurrence''  
+        """
 
         gt = AnalysisBaseClass.format_gt_captions(gt_path)
         gt = [item for item in gt if item['image_id'] in filter_imgs]
         gt_output = AnalysisBaseClass.bias_amplification_objects(gt)
 
-        caption_paths_local = [caption_path for caption_path in self.caption_paths if 
-                               caption_path[0] in models_to_test]
+        caption_paths_local = [caption_path for caption_path
+            in self.caption_paths
+            if caption_path[0] in models_to_test]
+
         for caption_path in caption_paths_local:
 
             predictions = json.load(open(caption_path[1]))
-            captions = [item for item in predictions if item['image_id'] in filter_imgs]
+            captions = [item for item
+                in predictions
+                if item['image_id'] in filter_imgs]
             gen_output = AnalysisBaseClass.bias_amplification_objects(captions)
     
             #get absolute mean of difference
     
-            print ("Average bias amplification across objects for man for caption model %s: " %caption_path[0])
+            print("Average bias amplification across objects for man for caption model %s: " %caption_path[0])
             obj_diffs = []
             for obj in gt_output['man']:
-                obj_diffs.append(np.abs(gt_output['man'][obj] - gen_output['man'][obj]))
-            print ("Average bias amplification for man: %0.04f" %(np.mean(obj_diffs))) 
+                obj_diffs.append(
+                    np.abs(gt_output['man'][obj] - gen_output['man'][obj])
+                )
+            print("Average bias amplification for man: %0.04f" %(np.mean(obj_diffs))) 
     
             print ("Average bias amplification across objects for woman for caption model %s: " %caption_path[0])
             obj_diffs = []
             for obj in gt_output['woman']:
-                obj_diffs.append(np.abs(gt_output['woman'][obj] - gen_output['woman'][obj]))
+                obj_diffs.append(
+                    np.abs(gt_output['woman'][obj] - gen_output['woman'][obj])
+                )
             print ("Average bias amplification for woman: %0.04f" %(np.mean(obj_diffs))) 
 
     ###############################################
     ########             Utils             ########
     ###############################################
 
-    # Static variables
-    man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 
-        'groom', 'male','guy', 'men', 'males', 'boys', 'guys', 'dads', 'dude', 
-        'policeman', 'policemen', 'father', 'son', 'fireman', 'actor', 
-        'gentleman', 'boyfriend', 'mans', 'his', 'obama', 'actors']
-    woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman',
-        'bride', 'female', 'lady', 'women', 'girls', 'ladies', 'females',
-        'moms', 'actress', 'nun', 'girlfriend', 'her', 'she']
-    person_word_list_synonyms = ['person', 'child', 'kid', 'teenager',
-        'someone', 'player', 'rider', 'people', 'crowd', 'skiier',
-        'snowboarder', 'surfer', 'children', 'hipster', 'bikder', 'bikers',
-        'skiiers', 'snowboarders', 'surfers', 'chef', 'chefs', 'family',
-        'skateboarder', 'skateboarders', 'adult', 'adults', 'baby', 'babies',
-        'skiers', 'skier', 'diver', 'divers', 'bicycler', 'bicyclists',
-        'friends', 'kids', 'hikers', 'hiker', 'student', 'students',
-        'teenagers', 'riders', 'shopper', 'cyclist', 'officer', 'pedestrians',
-        'teen', 'worker', 'passenger', 'passengers', 'cook', 'cooks',
-        'officers', 'persons', 'workers', 'pedestrian', 'employee',
-        'employees', 'driver', 'cyclists', 'skater', 'skaters', 'toddler',
-        'fighter', 'patrol', 'patrols', 'cop', 'couple', 'server', 'carrier',
-        'player', 'players', 'motorcyclist', 'motorcyclists', 'youngsters',
-        'carpenter', 'owner', 'owners', 'individual', 'bicyclists',
-        'bicyclist', 'group', 'boarder', 'boarders', 'boater', 'painter',
-        'artist', 'citizen', 'youths', 'staff', 'biker', 'technician', 'hand',
-        'baker', 'fans', 'they', 'manager', 'plumber', 'hands',
-        'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
-    anno_dir = '../data/'
-    target_train = os.path.join(anno_dir, 'train.data')
-    target_val = os.path.join(anno_dir, 'dev.data')
-    target_test = os.path.join(anno_dir, 'test.data')
-
+    
 
     @staticmethod
     def confidence_level(caption_list, gender):
@@ -622,11 +663,15 @@ class AnalysisBaseClass:
         return len(set(words) & set(word_list)) > 0
 
     @staticmethod
-    def is_gendered(words, gender_type='woman', man_word_list=['man'], woman_word_list=['woman']):
+    def is_gendered(
+        words,
+        gender_type='woman',
+        man_word_list=['man'],
+        woman_word_list=['woman']
+    ):
         """
-        Returns true if the words in words contain
-        a gender word from the specified gender type.
-        If the caption contains more than one gender,
+        Returns true if the words in words contain a gender word from the
+        specified gender type. If the caption contains more than one gender,
         return False.
         """
         m = False
@@ -645,7 +690,10 @@ class AnalysisBaseClass:
         gt = json.load(open(gt_file))
         gt_caps = []
         for annotation in gt['annotations']:
-            gt_caps.append({'image_id': annotation['image_id'], 'caption': annotation['caption']})
+            gt_caps.append({
+                'image_id': annotation['image_id'],
+                'caption': annotation['caption']
+            })
         return gt_caps
 
     @staticmethod
@@ -664,8 +712,7 @@ class AnalysisBaseClass:
     def get_shopping_split(
         fpath='../data/dev.data'
     ):
-        # TODO: move all data to one location and store dir as attribute
-        """Returns desired split from men also like shopping as a list of filenames."""
+        """Returns split from men also like shopping as list of filenames."""
         data = []
         samples = pickle.load(open(fpath, 'rb'))
         for sample in samples:
@@ -673,26 +720,21 @@ class AnalysisBaseClass:
 
         return data
 
-    # create annotation dictionary and simplified anno dict
-    img_2_anno_dict = create_dict_from_list(
-        pickle.load(open(target_train, 'rb'))
-    )
-    img_2_anno_dict.update(create_dict_from_list(
-        pickle.load(open(target_test, 'rb')))
-    )
-    img_2_anno_dict.update(create_dict_from_list(
-        pickle.load(open(target_val, 'rb')))
-    )
-    img_2_anno_dict_simple = simplify_anno_dict.__func__(img_2_anno_dict) # bleh
-    # fetch ground truth captions and store in dict mapping id : caps
-    gt_path = '../data/captions_only_valtrain2014.json'
-    gt_caps_list = json.load(open(gt_path))['annotations']
-    gt_caps = collections.defaultdict(list)
-    for cap in gt_caps_list:
-        gt_caps[int(cap['image_id'])].append(cap['caption'])
-
     @staticmethod
-    def get_confident_split(conf_level=4):
+    def create_dict_from_list(samples):
+        """
+        Converts ground truth annotations from reducing bias paper to dictionary
+        indexed by image name.
+        """
+        img2anno = {}
+        for sample in samples:
+            img = sample['img']
+            img2anno[img] = sample['annotation']
+        return img2anno
+
+    
+    @staticmethod
+    def get_confident_split(img_2_anno_dict_simple, conf_level=4):
         """
         Return list of image ids with confidence greater than or equal to
         conf_level. Confidence is number of ground truth human annotators
@@ -700,9 +742,9 @@ class AnalysisBaseClass:
 
         returns: a list of captions with specified confidence
         """
-        bias_ids = list(AnalysisBaseClass.img_2_anno_dict_simple.keys())
+        bias_ids = list(img_2_anno_dict_simple.keys())
         conf_ids = []
-        img_2_anno = AnalysisBaseClass.img_2_anno_dict_simple
+        img_2_anno = img_2_anno_dict_simple
         conf_calculator = AnalysisBaseClass.confidence_level
 
         for image_id in bias_ids:

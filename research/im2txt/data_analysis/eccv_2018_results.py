@@ -4,29 +4,12 @@ import sys
 import argparse
 from collections import OrderedDict
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description='Compute results in Snowboard paper from pretrained model.'
-    )
-    parser.add_argument(
-        '--experiments',
-        dest='experiments',
-        type=str,
-        action='append',
-        required=True,
-        help='List of experiments to run. Options: table_1_main, table_2_main' \
-            'table_3_main, figure_3_main, or all for all experiments'
-    )
-    if len(sys.argv) == 1:
-        parser.print_help()
-        sys.exit(1)
-    return parser.parse_args() 
+# --------------------------- Create Splits ---------------------------------- #
 
 def get_ids(fname):
+    """Fetch ids from 'Men Also Like Shopping' split files"""
     with open(fname, 'r') as f:
         return [int(img_id.split()[0]) for img_id in f.readlines()]
-
-# --------------------------- Create Splits ---------------------------------- #
 
 # Get caption results
 caption_paths = []
@@ -81,8 +64,10 @@ def table_1_main():
         print('Model\tError\tRatio Difference')
         for model, model_results in all_results.iteritems():
             print(model, end='\t')
-            print(model_results['all_incorrect'], end='\t')
-            print(model_results['gt_ratio'] - model_results['ratio'])
+            print("{0:.2f}".format(model_results['all_incorrect']*100),end='\t')
+            print("{0:.2f}".format(
+                model_results['gt_ratio']-model_results['ratio']
+            ))
 
 def table_2_main():
     for split_name, id_list in datasets:
@@ -94,29 +79,38 @@ def table_2_main():
         )
         for model, model_results in all_results.iteritems():
             print(model, end='\t')
-            print(model_results['female_correct'], end='\t')
-            print(model_results['female_incorrect'], end='\t')
-            print(model_results['female_other'], end='\t')
-            print(model_results['male_correct'], end='\t')
-            print(model_results['male_incorrect'], end='\t')
-            print(model_results['male_other'])
+            print("{0:.2f}".format(model_results['female_correct']*100),end='\t')
+            print("{0:.2f}".format(model_results['female_incorrect']*100),end='\t')
+            print("{0:.2f}".format(model_results['female_other']*100),end='\t')
+            print("{0:.2f}".format(model_results['male_correct']*100),end='\t')
+            print("{0:.2f}".format(model_results['male_incorrect']*100),end='\t')
+            print("{0:.2f}".format(model_results['male_other']*100))
 
 def table_3_main():
-    print("TODO")
+    for split_name, id_list in datasets:
+        print('---------------------- %s ----------------------' % split_name)
+        print("TODO")
 
 def figure_3_main():
     for split_name, id_list in datasets:
         print('---------------------- %s ----------------------' % split_name)
-        all_results = analysis_computer.accuracy(id_list)
-        analysis_computer.retrieve_accuracy_with_confidence(id_list)
+        all_res = analysis_computer.retrieve_accuracy_with_confidence(id_list)
+        for model, model_results in all_res.iteritems():
+            print('Model Name: %s' % model)
+            print('Confidence\tAccuracy')
+            for i, result_i in enumerate(model_results):
+                print(i+1, end='\t')
+                print("{0:.2f}".format(result_i*100))
 
 def table_1_supp():
     for split_name, id_list in datasets:
         print('---------------------- %s ----------------------' % split_name)
-        analysis_computer.biased_objects(caption_path, id_list)
+        analysis_computer.biased_objects(caption_paths, id_list)
 
 def table_2_supp():
-    print("TODO")
+   for split_name, id_list in datasets:
+       print('---------------------- %s ----------------------' % split_name)
+       print("TODO")
 
 experiment_functions = OrderedDict([
     ('table_1_main',table_1_main),
@@ -124,8 +118,27 @@ experiment_functions = OrderedDict([
     ('table_3_main',table_3_main),
     ('figure_3_main',figure_3_main),
     ('table_1_supp',table_1_supp),
+    ('table_2_supp',table_2_supp)
 ])
 experiment_names = experiment_functions.keys()
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description='Compute results in Snowboard paper from pretrained model.'
+    )
+    parser.add_argument(
+        '--experiments',
+        dest='experiments',
+        type=str,
+        action='append',
+        required=True,
+        help='List of experiments to run. Options: '+' '.join(experiment_names)
+    )
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(1)
+    return parser.parse_args() 
+
 
 if __name__ == '__main__':
     args = parse_args()
@@ -134,5 +147,5 @@ if __name__ == '__main__':
     for experiment in args.experiments:
         if experiment not in experiment_names:
             raise ValueError('please use name in: '+' '.join(experiment_names))
-        print("###################### "+experiment+" ######################")
+        print('\n\nRESULTS: '+experiment)
         experiment_functions[experiment]()
