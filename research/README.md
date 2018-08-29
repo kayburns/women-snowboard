@@ -42,9 +42,13 @@ To create "confident subset", see `scripts/make_confident_set.py`
 For amplification bias of diccerent nouns, see `find_bigrams.py`
 
 ## TODO
-[] constructing tfrecords with blocked images (Kaylee)
-[] running GradCam (Anja). add to `models/research/im2txt/data_analysis/eccv_results_2018.py`
-[] saliency code (Kaylee)
-[] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script (Kaylee)
-[] Creating gt segmentation masks (Anja)
+Kaylee
+[] constructing tfrecords with blocked images
+[] send Lisa all weights and captions
+[] saliency code
+[] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
+
+Anja
+[] code to run GradCam add to `models/research/im2txt/data_analysis/eccv_results_2018.py`
+[] Creating gt segmentation masks
 
