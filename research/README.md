@@ -1,12 +1,12 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
-## Getting Started
-
-This repository contains everything necessary to replicate the results in our [2018 ECCV paper](). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves.
+This repository contains everything necessary to replicate the results in our [2018 ECCV paper](). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
 
 ## Creating Dataset
 
-To download MSCOCO ... . We run our experiments on the "bias split" defined in ...
+[Instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) to download and preprocess MSCOCO are provided in the original repository.
+
+We run our experiments on the "bias split" defined in ...
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](/todo) and [storing them as tfrecord files](/todo).
 
@@ -45,7 +45,6 @@ confusion_word_non_blocked_type: Type for confident loss (we use type quotient f
 
 ## TODO
 Kaylee
-- [ ] include yaml file to set up environment + setup instructions
 - [ ] instructions downloading coco and bias paper split details
 - [ ] constructing tfrecords with blocked images
 - [ ] redo training script paths
@@ -53,6 +52,7 @@ Kaylee
 - [ ] saliency code
 - [ ] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
 - [ ] add vocabulary file to repo
+- [ ] include yaml file to set up environment + setup instructions
 
 Anja
 - [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
