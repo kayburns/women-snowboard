@@ -1,13 +1,18 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
 ## Getting Started
-This repository contains everything necessary to replicate the results in our 2018 ECCV paper. We've also released the weights and generated caption from each model. (TODO: link all).
+This repository contains everything necessary to replicate the results in our 2018 ECCV paper. To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves.
+
+## Creating Dataset
+
+To download MSCOCO ... . We run our experiments on the "bias split" defined in ...
+
+The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](/todo) and [storing them as tfrecord files](/todo).
 
 ## Training Models
-Training scripts are provided [here](/models/research/im2txt/train_scripts/).
+Training scripts are provided [here](im2txt/train_scripts/).
 
 ## Running Analysis on Generated COCO Captions
-
 
 
 ## Flags added to training code:
@@ -43,12 +48,17 @@ For amplification bias of diccerent nouns, see `find_bigrams.py`
 
 ## TODO
 Kaylee
+- [ ] downloading coco and bias paper split details
 - [ ] constructing tfrecords with blocked images
+- [ ] redo training script paths
 - [ ] send Lisa all weights and captions
 - [ ] saliency code
 - [ ] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
+- [ ] add vocabulary file to repo
 
 Anja
-- [ ] code to run GradCam add to `models/research/im2txt/data_analysis/eccv_results_2018.py`
-- [ ] Creating gt segmentation masks
+- [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
+- [ ] Code to create blocked images
 
+Lisa
+- [ ] add training scripts for balanced and upweight baselines to training scripts folder
