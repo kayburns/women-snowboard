@@ -1,7 +1,8 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
 ## Getting Started
-This repository contains everything necessary to replicate the results in our 2018 ECCV paper. To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves.
+
+This repository contains everything necessary to replicate the results in our [2018 ECCV paper](). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves.
 
 ## Creating Dataset
 
@@ -13,9 +14,12 @@ The Appearance Confusion Loss requires masked images. To create masks, please se
 Training scripts are provided [here](im2txt/train_scripts/).
 
 ## Running Analysis on Generated COCO Captions
-
+To create "confident subset", see `scripts/make_confident_set.py`
+For amplification bias of different nouns, see `find_bigrams.py`
+Any result from the paper can be recreated with [this](im2txt/data_analysis/eccv_results_2018.py) script.
 
 ## Flags added to training code:
+### move this to doc straings in the training code? flags to train any model should be clear from scripts?
 
 input_file_pattern2: Path for an additional path to tfrecord files.  Use to train balanced model.
 
@@ -39,16 +43,10 @@ confusion_word_non_blocked_weight:  Weight for confident loss.
 
 confusion_word_non_blocked_type: Type for confident loss (we use type quotient for our ECCV experiments). 
 
-## Tools and Scripts 
-
-Creation of different subsets:
-
-To create "confident subset", see `scripts/make_confident_set.py`
-For amplification bias of diccerent nouns, see `find_bigrams.py`
-
 ## TODO
 Kaylee
-- [ ] downloading coco and bias paper split details
+- [ ] include yaml file to set up environment + setup instructions
+- [ ] instructions downloading coco and bias paper split details
 - [ ] constructing tfrecords with blocked images
 - [ ] redo training script paths
 - [ ] send Lisa all weights and captions
