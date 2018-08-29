@@ -4,7 +4,7 @@
 This repository contains everything necessary to replicate the results in our 2018 ECCV paper. We've also released the weights and generated caption from each model. (TODO: link all).
 
 ## Training Models
-Training scripts are provided in 
+Training scripts are provided [here](/models/research/im2txt/train_scripts/).
 
 ## Running Analysis on Generated COCO Captions
 
