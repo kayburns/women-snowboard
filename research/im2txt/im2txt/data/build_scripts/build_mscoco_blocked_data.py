@@ -92,9 +92,10 @@ import os.path
 import random
 import sys
 import threading
-import pickle
+import pdb
 
-
+sys.path.append(os.path.abspath('../inference_utils/'))
+import vocabulary
 
 import nltk.tokenize
 import numpy as np
@@ -110,6 +111,7 @@ tf.flags.DEFINE_string("train_captions_file", "/tmp/captions_train2014.json",
 tf.flags.DEFINE_string("val_captions_file", "/tmp/captions_val2014.json",
                        "Validation captions JSON file.")
 
+tf.flags.DEFINE_string("bias_dir", "", "Directory containing bias split.")
 tf.flags.DEFINE_string("output_dir", "/tmp/", "Output data directory.")
 
 tf.flags.DEFINE_integer("train_shards", 256,
@@ -199,31 +201,27 @@ def _bytes_feature_list(values):
   """Wrapper for inserting a bytes FeatureList into a SequenceExample proto."""
   return tf.train.FeatureList(feature=[_bytes_feature(v) for v in values])
 
-
 def create_fine_tune_dataset():
-    """
-    Returns list of image names in the fine
-    tune dataset.
+  """
+  Returns list of image names for blocked images.
+  e.g. ["COCO_train2014_000000187427.jpg",
+        "COCO_train2014_000000067565.jpg",
+        "COCO_train2014_000000457587.jpg"]
+  """
+  blocked_images = []
+  filepath = FLAGS.bias_dir
+  target_train = filepath + 'train.data'
+  target_val = filepath + 'dev.data'
+  target_test = filepath + 'test.data'
 
-    e.g. ["COCO_train2014_000000187427.jpg",
-          "COCO_train2014_000000067565.jpg",
-          "COCO_train2014_000000457587.jpg"]
-    """
-    fine_tune_dataset_images = []
-    filepath = '/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
-    target_train = filepath + 'train.data'
-    target_val = filepath + 'dev.data'
-    target_test = filepath + 'test.data'
+  for dataset in [target_train, target_val, target_test]:
+    samples = pickle.load(open(dataset))
+    for sample in samples:
+      blocked_images.append(sample['img'])
 
-    for dataset in [target_train, target_val, target_test]:
-        samples = pickle.load(open(dataset))
-        for sample in samples:
-            fine_tune_dataset_images.append(sample['img'])
+  return blocked_images
 
-    return fine_tune_dataset_images
-    
-
-def _to_sequence_example(image, decoder, vocab):
+def _to_sequence_example(image, decoder, vocab, blocked_images=[]):
   """Builds a SequenceExample proto for an image-caption pair.
 
   Args:
@@ -243,9 +241,22 @@ def _to_sequence_example(image, decoder, vocab):
     print("Skipping file with invalid JPEG data: %s" % image.filename)
     return
 
+  # corresponding to blocked images
+  encoded_filename="/data2/lisaanne/fair_captions/images/blocked_images_black/" + image.filename 
+  with tf.gfile.FastGFile(encoded_filename, "r") as f:
+    encoded_blocked_image = f.read()
+    
+  try:
+    decoder.decode_jpeg(encoded_blocked_image)
+  except (tf.errors.InvalidArgumentError, AssertionError):
+    print("Skipping file with invalid JPEG data: %s" % image.filename)
+    return
+
   context = tf.train.Features(feature={
-      "image/image_id": _int64_feature(image.image_id),
-      "image/data": _bytes_feature(encoded_image),
+    "image/image_id": _int64_feature(image.image_id),
+    "image/data": _bytes_feature(encoded_image), 
+    # add blocked to tfrecord
+    "image/blocked_data": _bytes_feature(encoded_blocked_image) 
   })
 
   assert len(image.captions) == 1
@@ -378,6 +389,9 @@ def _create_vocab(captions):
   Returns:
     A Vocabulary object.
   """
+  if tf.gfile.Exists(FLAGS.word_counts_output_file):
+    vocab = vocabulary.Vocabulary(FLAGS.word_counts_output_file)
+    return Vocabulary(vocab.vocab, vocab.unk_id)
   print("Creating vocabulary.")
   counter = Counter()
   for c in captions:
@@ -451,13 +465,14 @@ def _load_and_process_metadata(captions_file, image_dir):
   print("Processing captions.")
   image_metadata = []
   num_captions = 0
-  fine_tune_dataset = create_fine_tune_dataset()
+  
+  fine_tune_dataset = create_fine_tune_dataset() 
   for image_id, base_filename in id_to_filename:
     if base_filename in fine_tune_dataset:
-        filename = os.path.join(image_dir, base_filename)
-        captions = [_process_caption(c) for c in id_to_captions[image_id]]
-        image_metadata.append(ImageMetadata(image_id, filename, captions))
-        num_captions += len(captions)
+      filename = os.path.join(image_dir, base_filename)
+      captions = [_process_caption(c) for c in id_to_captions[image_id]]
+      image_metadata.append(ImageMetadata(image_id, filename, captions))
+      num_captions += len(captions)
   print("Finished processing %d captions for %d images in %s" %
         (num_captions, len(id_to_filename), captions_file))
 
@@ -480,12 +495,10 @@ def main(unused_argv):
     tf.gfile.MakeDirs(FLAGS.output_dir)
 
   # Load image metadata from caption files.
-  print("Loading and processing metadata.")
   mscoco_train_dataset = _load_and_process_metadata(FLAGS.train_captions_file,
                                                     FLAGS.train_image_dir)
   mscoco_val_dataset = _load_and_process_metadata(FLAGS.val_captions_file,
                                                   FLAGS.val_image_dir)
-  print("Metadata processing complete.")
 
   val_cutoff = int(0.5 * len(mscoco_val_dataset))
   train_dataset = mscoco_train_dataset
@@ -493,18 +506,12 @@ def main(unused_argv):
   test_dataset = mscoco_val_dataset[val_cutoff:]
 
   # Create vocabulary from the training captions.
-  print("Creating vocabulary.")
   train_captions = [c for image in train_dataset for c in image.captions]
   vocab = _create_vocab(train_captions)
-  print("Vocabulary created.")
 
-  print("Processing dataset.")
   _process_dataset("train", train_dataset, vocab, FLAGS.train_shards)
-  print("Train processed.")
   _process_dataset("val", val_dataset, vocab, FLAGS.val_shards)
-  print("Val processed.")
   _process_dataset("test", test_dataset, vocab, FLAGS.test_shards)
-  print("Test processed.")
 
 
 if __name__ == "__main__":
