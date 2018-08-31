@@ -2,13 +2,33 @@
 
 This repository contains everything necessary to replicate the results in our [2018 ECCV paper](). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
 
-## Creating Dataset
+## Getting Started
 
-[Instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) to download and preprocess MSCOCO are provided in the original repository.
+### Install the required packages.
 
-We run our experiments on the "bias split" defined in ...
+- Tensorflow v1.0 
+- NumPy v??
+- nltk
+- unzip
 
-The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](/todo) and [storing them as tfrecord files](/todo).
+Or see the [`requirements.txt`](??) file.
+
+### Prepare the training data.
+
+To train the model you will need to provide training data in native TFRecord format. Code is available [here](im2txt/im2txt/data/download_and_preprocess_mscoco.sh) and detailed [instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) about downloading and preprocessing the data are available in the original repo.
+
+We run our experiments on the "bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows:
+
+```
+cd im2txt/data/bias_splits
+curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/dev.data
+curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/train.data
+curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
+```
+
+The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](todo).
+
+Our experiments fine tune standard im2txt on the bias coco split. Please see the code for [storing data tfrecord files](im2txt/im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
 
 ## Training Models
 Training scripts are provided [here](im2txt/train_scripts/).
@@ -45,14 +65,11 @@ confusion_word_non_blocked_type: Type for confident loss (we use type quotient f
 
 ## TODO
 Kaylee
-- [ ] instructions downloading coco and bias paper split details
-- [ ] constructing tfrecords with blocked images
-- [ ] redo training script paths
-- [ ] send Lisa all weights and captions
+- [ ] test all scripts to download and tfrecord-ify all data (normal, bias, blocked) (need to rerun but data1 and data2 are full)
+- [ ] include yaml file to set up environment + setup instructions
+- [ ] send Lisa all weights and captions (once data2 is fast again?)
 - [ ] saliency code
 - [ ] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
-- [ ] add vocabulary file to repo
-- [ ] include yaml file to set up environment + setup instructions
 
 Anja
 - [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
