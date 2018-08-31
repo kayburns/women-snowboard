@@ -1,46 +1,62 @@
-# TensorFlow Research Models
+# Women also Snowboard: Overcoming Bias in Captioning Models 
 
-This folder contains machine learning models implemented by researchers in
-[TensorFlow](https://tensorflow.org). The models are maintained by their
-respective authors. To propose a model for inclusion, please submit a pull
-request.
+This repository contains everything necessary to replicate the results in our [2018 ECCV paper](). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
 
-Currently, the models are compatible with TensorFlow 1.0 or later. If you are
-running TensorFlow 0.12 or earlier, please
-[upgrade your installation](https://www.tensorflow.org/install).
+## Creating Dataset
 
+[Instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) to download and preprocess MSCOCO are provided in the original repository.
 
-## Models
-- [adversarial_crypto](adversarial_crypto): protecting communications with adversarial neural cryptography.
-- [adversarial_text](adversarial_text): semi-supervised sequence learning with adversarial training.
-- [attention_ocr](attention_ocr): a model for real-world image text extraction.
-- [audioset](audioset): Models and supporting code for use with [AudioSet](http://g.co.audioset).
-- [autoencoder](autoencoder): various autoencoders.
-- [cognitive_mapping_and_planning](cognitive_mapping_and_planning): implementation of a spatial memory based mapping and planning architecture for visual navigation.
-- [compression](compression): compressing and decompressing images using a pre-trained Residual GRU network.
-- [differential_privacy](differential_privacy): privacy-preserving student models from multiple teachers.
-- [domain_adaptation](domain_adaptation): domain separation networks.
-- [im2txt](im2txt): image-to-text neural network for image captioning.
-- [inception](inception): deep convolutional networks for computer vision.
-- [learning_to_remember_rare_events](learning_to_remember_rare_events):  a large-scale life-long memory module for use in deep learning.
-- [lfads](lfads): sequential variational autoencoder for analyzing neuroscience data.
-- [lm_1b](lm_1b): language modeling on the one billion word benchmark.
-- [namignizer](namignizer): recognize and generate names.
-- [neural_gpu](neural_gpu): highly parallel neural computer.
-- [neural_programmer](neural_programmer): neural network augmented with logic and mathematic operations.
-- [next_frame_prediction](next_frame_prediction): probabilistic future frame synthesis via cross convolutional networks.
-- [object_detection](object_detection): localizing and identifying multiple objects in a single image.
-- [pcl_rl](pcl_rl): code for several reinforcement learning algorithms, including Path Consistency Learning.
-- [ptn](ptn): perspective transformer nets for 3D object reconstruction.
-- [qa_kg](qa_kg): module networks for question answering on knowledge graphs.
-- [real_nvp](real_nvp): density estimation using real-valued non-volume preserving (real NVP) transformations.
-- [rebar](rebar): low-variance, unbiased gradient estimates for discrete latent variable models.
-- [resnet](resnet): deep and wide residual networks.
-- [skip_thoughts](skip_thoughts): recurrent neural network sentence-to-vector encoder.
-- [slim](slim): image classification models in TF-Slim.
-- [street](street): identify the name of a street (in France) from an image using a Deep RNN.
-- [swivel](swivel): the Swivel algorithm for generating word embeddings.
-- [syntaxnet](syntaxnet): neural models of natural language syntax.
-- [textsum](textsum): sequence-to-sequence with attention model for text summarization.
-- [transformer](transformer): spatial transformer network, which allows the spatial manipulation of data within the network.
-- [video_prediction](video_prediction): predicting future video frames with neural advection.
+We run our experiments on the "bias split" defined in ...
+
+The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](/todo) and [storing them as tfrecord files](/todo).
+
+## Training Models
+Training scripts are provided [here](im2txt/train_scripts/).
+
+## Running Analysis on Generated COCO Captions
+To create "confident subset", see `scripts/make_confident_set.py`
+For amplification bias of different nouns, see `find_bigrams.py`
+Any result from the paper can be recreated with [this](im2txt/data_analysis/eccv_results_2018.py) script.
+
+## Flags added to training code:
+### move this to doc straings in the training code? flags to train any model should be clear from scripts?
+
+input_file_pattern2: Path for an additional path to tfrecord files.  Use to train balanced model.
+
+blocked_input_file_pattern: Path to indicate path to blocked tfrecord files. 
+
+loss_weight_value:  Indicates the loss weight to place on man/woman words.  This is used for all UpWeight models in the paper.  Can only indicate one weight for man words and for woman words.
+
+blocked_image:  Whether or not to train the appearance confusion loss.
+
+two_input_queues:  Whether or not to trian data from two input queues.  This was used to train the balanced data in the paper.
+
+blocked_weight_selective:  What a confusing name!  This is the flag for sum/no-sum for the appearance confusion loss.  By default this is True.  This means that by default models will be trained as indicated in equations from the paper; mainly the difference in probabilities is only considered for gendered words.
+
+blocked_loss_weight:  How much to weight the appearance confusion loss.
+
+blocked_image_ce: Flag to include cross entropy loss on blocked images
+
+blocked_image_ce_weight:  Weight for blocked image ce loss
+
+confusion_word_non_blocked_weight:  Weight for confident loss.
+
+confusion_word_non_blocked_type: Type for confident loss (we use type quotient for our ECCV experiments). 
+
+## TODO
+Kaylee
+- [ ] instructions downloading coco and bias paper split details
+- [ ] constructing tfrecords with blocked images
+- [ ] redo training script paths
+- [ ] send Lisa all weights and captions
+- [ ] saliency code
+- [ ] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
+- [ ] add vocabulary file to repo
+- [ ] include yaml file to set up environment + setup instructions
+
+Anja
+- [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
+- [ ] Code to create blocked images
+
+Lisa
+- [ ] add training scripts for balanced and upweight baselines to training scripts folder

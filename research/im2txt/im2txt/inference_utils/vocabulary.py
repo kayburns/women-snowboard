@@ -20,8 +20,8 @@ from __future__ import print_function
 
 
 import tensorflow as tf
-
-
+import sys
+sys.path.append('../../')
 class Vocabulary(object):
   """Vocabulary class for an image-to-text model."""
 

@@ -42,6 +42,7 @@ class ModelConfig(object):
 
     # Name of the SequenceExample context feature containing image data.
     self.image_feature_name = "image/data"
+    self.blocked_image_feature_name = "image/blocked_data"
     # Name of the SequenceExample feature list containing integer captions.
     self.caption_feature_name = "image/caption_ids"
 
@@ -51,12 +52,13 @@ class ModelConfig(object):
     # no harm in using a value greater than the actual vocab size, but using a
     # value less than the actual vocab size will result in an error.
     self.vocab_size = 12000
+    self.vocab_file = '/data1/caption_bias/models/research/im2txt/im2txt/data/word_counts.txt' 
 
     # Number of threads for image preprocessing. Should be a multiple of 2.
     self.num_preprocess_threads = 4
 
     # Batch size.
-    self.batch_size = 32
+    #self.batch_size = 32 #change this so things are updated in the train code
 
     # File containing an Inception v3 checkpoint to initialize the variables
     # of the Inception model. Must be provided when starting training for the

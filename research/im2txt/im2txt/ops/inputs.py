@@ -19,9 +19,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import tensorflow as tf
+try:
+    from im2txt.inference_utils import vocabulary
+except:
+    import sys
+    sys.path.append('im2txt/')
+    sys.path.append('.')
+    from im2txt.inference_utils import vocabulary
 
+vocab_file = 'im2txt/data/word_counts_fresh.txt'
+#vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
+import pdb
+if vocab_file != 'im2txt/data/word_counts_fresh.txt':
+    print("Wrong vocab file")
+    pdb.set_trace()
+loss_weight_words = ['man', 'woman']
+max_sentence_length_int = 50
 
 def parse_sequence_example(serialized, image_feature, caption_feature):
   """Parses a tensorflow.SequenceExample into an image and caption.
@@ -49,7 +63,6 @@ def parse_sequence_example(serialized, image_feature, caption_feature):
   encoded_image = context[image_feature]
   caption = sequence[caption_feature]
   return encoded_image, caption
-
 
 def prefetch_input_data(reader,
                         file_pattern,
@@ -126,7 +139,10 @@ def prefetch_input_data(reader,
 def batch_with_dynamic_pad(images_and_captions,
                            batch_size,
                            queue_capacity,
-                           add_summaries=True):
+                           add_summaries=True,
+                           num_queues = 1, 
+                           loss_weight_value=None,
+                           return_enqueue_list = False):
   """Batches input images and captions.
 
   This function splits the caption into an input sequence and a target sequence,
@@ -178,17 +194,37 @@ def batch_with_dynamic_pad(images_and_captions,
     target_seqs: An int32 Tensor of shape [batch_size, padded_length].
     mask: An int32 0/1 Tensor of shape [batch_size, padded_length].
   """
+  max_sentence_length = tf.constant(max_sentence_length_int)
+
+  if loss_weight_value:
+      vocab = vocabulary.Vocabulary(vocab_file) 
+      loss_weight_ids = [vocab.word_to_id(word) for word in loss_weight_words]
+
   enqueue_list = []
   for image, caption in images_and_captions:
     caption_length = tf.shape(caption)[0]
-    input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0)
-
+    input_length = tf.expand_dims(tf.subtract(caption_length, 1), 0) 
     input_seq = tf.slice(caption, [0], input_length)
     target_seq = tf.slice(caption, [1], input_length)
     indicator = tf.ones(input_length, dtype=tf.int32)
+
+    if loss_weight_value:
+        #need to find which input values match words
+        loss_weight_bool = []
+        for loss_weight_id in loss_weight_ids:
+            loss_weight_bool.append(tf.cast(
+                                    tf.equal(target_seq, loss_weight_id, name=None),
+                                    dtype=tf.int32))
+        #loss weight should be list of binary tensors; add the tensors to account for each word 
+        loss_weight_sum = tf.add_n(loss_weight_bool)
+        #multiply by loss_weight_value-1; weight loss should now be tensor with 0s and values of loss_weight_value-1
+        loss_weight_sum = tf.scalar_mul(tf.constant(loss_weight_value-1), loss_weight_sum) 
+        #add one to all values; now indicator should have 1's and values = loss_weight_value
+        indicator = tf.add(loss_weight_sum, indicator)       
+  
     enqueue_list.append([image, input_seq, target_seq, indicator])
 
-  images, input_seqs, target_seqs, mask = tf.train.batch_join(
+  outputs = tf.train.batch_join(
       enqueue_list,
       batch_size=batch_size,
       capacity=queue_capacity,
@@ -196,9 +232,16 @@ def batch_with_dynamic_pad(images_and_captions,
       name="batch_and_pad")
 
   if add_summaries:
-    lengths = tf.add(tf.reduce_sum(mask, 1), 1)
+    lengths = tf.add(tf.reduce_sum(outputs[-1], 1), 1)
     tf.summary.scalar("caption_length/batch_min", tf.reduce_min(lengths))
     tf.summary.scalar("caption_length/batch_max", tf.reduce_max(lengths))
     tf.summary.scalar("caption_length/batch_mean", tf.reduce_mean(lengths))
 
-  return images, input_seqs, target_seqs, mask
+    #do some simple checking to see if the indicator function looks right
+    tf.summary.scalar("caption_length/indicator_max", tf.reduce_max(indicator))
+
+  #return images, input_seqs, target_seqs, mask
+  if return_enqueue_list:
+    return enqueue_list
+  else:
+    return outputs 
