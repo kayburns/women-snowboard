@@ -28,10 +28,8 @@ except:
     sys.path.append('.')
     from im2txt.inference_utils import vocabulary
 
-vocab_file = 'im2txt/data/word_counts_fresh.txt'
-#vocab_file = 'im2txt/data/word_counts_fine_tune_2.txt'
-import pdb
-if vocab_file != 'im2txt/data/word_counts_fresh.txt':
+vocab_file = 'im2txt/data/word_counts.txt'
+if vocab_file != 'im2txt/data/word_counts.txt':
     print("Wrong vocab file")
     pdb.set_trace()
 loss_weight_words = ['man', 'woman']

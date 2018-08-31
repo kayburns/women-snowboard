@@ -39,11 +39,11 @@ except:
 
 from inference_utils import vocabulary
 
-vocab_file = 'im2txt/data/word_counts_fresh.txt'
+vocab_file = 'im2txt/data/word_counts.txt'
 try:
     vocab = vocabulary.Vocabulary(vocab_file)
 except:
-    vocab_file = '/home/lisaanne/lev/data2/kaylee/caption_bias/models/research/im2txt/im2txt/data/word_counts_fresh.txt'
+    vocab_file = 'im2txt/data/word_counts.txt'
     vocab = vocabulary.Vocabulary(vocab_file) 
 
 #sanity check on vocabulary words
