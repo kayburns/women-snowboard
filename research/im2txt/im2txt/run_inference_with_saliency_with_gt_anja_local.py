@@ -75,7 +75,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path='/data1/coco/annotations_trainval2014/captions_val2014.json'
+  json_path = 'im2txt/data/mscoco/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
@@ -99,15 +99,16 @@ def main(_):
     # Load the model from checkpoint.
     restore_fn(sess)
 
-    mask_dir_base = '/data2/caption-bias/mask-out-ims/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
+    mask_dir_base = '/data/tmp/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
     if not os.path.exists(mask_dir_base):
         os.makedirs(mask_dir_base)
 
     global_index = 0
+
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      original_filename = '/data1/coco/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+      original_filename = 'im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
       mask_dir = '%s/%s/' %(mask_dir_base, image_id)
       if not os.path.exists(mask_dir):
