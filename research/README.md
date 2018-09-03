@@ -79,7 +79,7 @@ Kaylee
 
 Anja
 - [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
-- [ ] Code to create blocked images
 
 Lisa
 - [ ] add training scripts for balanced and upweight baselines to training scripts folder
+- [ ] Code to create blocked images
