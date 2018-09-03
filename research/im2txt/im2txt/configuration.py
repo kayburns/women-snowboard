@@ -52,7 +52,7 @@ class ModelConfig(object):
     # no harm in using a value greater than the actual vocab size, but using a
     # value less than the actual vocab size will result in an error.
     self.vocab_size = 12000
-    self.vocab_file = '/data1/caption_bias/models/research/im2txt/im2txt/data/word_counts.txt' 
+    self.vocab_file = './data/word_counts.txt' 
 
     # Number of threads for image preprocessing. Should be a multiple of 2.
     self.num_preprocess_threads = 4

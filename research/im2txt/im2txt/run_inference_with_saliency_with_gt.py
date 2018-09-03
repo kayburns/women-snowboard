@@ -46,8 +46,8 @@ tf.flags.DEFINE_string("checkpoint_path", "",
                        "model checkpoint file.")
 tf.flags.DEFINE_string("vocab_file", "", "Text file containing the vocabulary.")
 tf.flags.DEFINE_integer("mask_size", 32, "Size of the mask.")
-tf.flags.DEFINE_string("dump_file", "", "Text file containing the vocabulary.")
-tf.flags.DEFINE_string("model_name", "", "Model name equivalebt to the JSON prediction file.")
+tf.flags.DEFINE_string("dump_file", "", "File to save output.")
+tf.flags.DEFINE_string("model_name", "", "Model name equivalent to the JSON prediction file.")
 tf.flags.DEFINE_string("img_path", "", "Text file containing image IDs.")
 tf.flags.DEFINE_string("save_path", "", "Path to the location where outputs should be saved.")
 
@@ -56,6 +56,7 @@ tf.logging.set_verbosity(tf.logging.INFO)
 def main(_):
   # Build the inference graph.
   g = tf.Graph()
+  #import pdb; pdb.set_trace()
   with g.as_default():
     model = saliency_wrapper.SaliencyWrapper()
     restore_fn = model.build_graph_from_config(configuration.ModelConfig(),
@@ -75,6 +76,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
+  # json_path='./im2txt/data/coco/captions_val2014.json'
   json_path='/data1/coco/annotations_trainval2014/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
@@ -93,13 +95,13 @@ def main(_):
     if len(json_dict) == 500: break
 
   image_ids = json_dict.keys()
-  assert(len(image_ids)==500)
+  #assert(len(image_ids)==500)
 
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.
     restore_fn(sess)
 
-    mask_dir_base = '/data2/caption-bias/mask-out-ims/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
+    mask_dir_base = './data/mask-out-ims/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
     if not os.path.exists(mask_dir_base):
         os.makedirs(mask_dir_base)
 
@@ -107,7 +109,7 @@ def main(_):
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      original_filename = '/data1/coco/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+      original_filename = './data/coco/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
       mask_dir = '%s/%s/' %(mask_dir_base, image_id)
       if not os.path.exists(mask_dir):
@@ -116,6 +118,7 @@ def main(_):
       mask_filenames = sorted(glob.glob('%s/*' %mask_dir))
 
       # loop over all masked images
+      import pdb;pdb.set_trace()
       images = []
       for filename in mask_filenames: 
           with tf.gfile.GFile(filename, "r") as f:

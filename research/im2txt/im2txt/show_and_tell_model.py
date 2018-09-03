@@ -39,14 +39,14 @@ except:
 
 from inference_utils import vocabulary
 
-vocab_file = 'im2txt/data/word_counts.txt'
+vocab_file = 'data/word_counts.txt'
 try:
     vocab = vocabulary.Vocabulary(vocab_file)
 except:
-    vocab_file = 'im2txt/data/word_counts.txt'
+    vocab_file = 'data/word_counts.txt'
     vocab = vocabulary.Vocabulary(vocab_file) 
 
-#sanity check on vocabulary words
+# sanity check on vocabulary words
 assert vocab.word_to_id('man') == 11
 assert vocab.word_to_id('woman') == 23
 assert vocab.word_to_id('brother') == 6056 
@@ -55,9 +55,9 @@ assert vocab.word_to_id('wife') == 4691
 #synonym list used for ECCV 2018 paper
 man_word_list_synonyms = ['man']
 woman_word_list_synonyms = ['woman']
-#Uncomment below if you would like to use more synonyms (see supplemental for more details)
-#man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
-#woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
+# Uncomment below if you would like to use more synonyms (see supplemental for more details)
+# man_word_list_synonyms = ['boy', 'brother', 'dad', 'husband', 'man', 'groom', 'male', 'guy', 'men']
+# woman_word_list_synonyms = ['girl', 'sister', 'mom', 'wife', 'woman', 'bride', 'female', 'lady', 'women']
 
 confusion_words = [man_word_list_synonyms, woman_word_list_synonyms] #for rebuttal experiment
 confusion_word_idx = [[vocab.word_to_id(word) for word in confusion_word_set] for confusion_word_set in confusion_words]
