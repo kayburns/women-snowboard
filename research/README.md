@@ -1,6 +1,6 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
-This repository contains everything necessary to replicate the results in our [2018 ECCV paper](). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
+This repository contains everything necessary to replicate the results in our [2018 ECCV paper](https://arxiv.org/abs/1803.09797). To skip training, use our [pretrained models](/todo) or the [captions](/todo) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
 
 ## Getting Started
 
@@ -28,7 +28,7 @@ curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](todo).
 
-Our experiments fine tune standard im2txt on the bias coco split. Please see the code for [storing data tfrecord files](im2txt/im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
+Our experiments fine tune standard im2txt on the bias coco split. Please see the code for [storing data as tfrecord files](im2txt/im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
 
 ## Training Models
 Training scripts are provided [here](im2txt/train_scripts/).
@@ -37,6 +37,11 @@ Training scripts are provided [here](im2txt/train_scripts/).
 To create "confident subset", see `scripts/make_confident_set.py`
 For amplification bias of different nouns, see `find_bigrams.py`
 Any result from the paper can be recreated with [this](im2txt/data_analysis/eccv_results_2018.py) script.
+
+## Generating saliency results (TODO: incorporate with other analysis)
+```
+python im2txt/run_inference_with_saliency_with_gt.py --checkpoint_path=./model/DESIRED_MODEL/train --vocab_file=./data/word_counts.txt --dump_file=./FILE_NAME --model_name=./MODEL_NAME --img_path=im2txt/data/val_dataset.txt --save_path=SAVE_PATH/
+```
 
 ## Flags added to training code:
 ### move this to doc straings in the training code? flags to train any model should be clear from scripts?
@@ -65,11 +70,12 @@ confusion_word_non_blocked_type: Type for confident loss (we use type quotient f
 
 ## TODO
 Kaylee
-- [ ] test all scripts to download and tfrecord-ify all data (normal, bias, blocked) (need to rerun but data1 and data2 are full)
+- [ ] test: all scripts to download and tfrecord-ify all data (normal, bias, blocked), inference with saved checkpoints,  (need to rerun but data1 and data2 are full)
 - [ ] include yaml file to set up environment + setup instructions
 - [ ] send Lisa all weights and captions (once data2 is fast again?)
 - [ ] saliency code
 - [ ] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
+- [ ] update with final version from eccv proceedings
 
 Anja
 - [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
