@@ -105,7 +105,9 @@ def figure_3_main():
 def table_1_supp():
     for split_name, id_list in datasets:
         print('---------------------- %s ----------------------' % split_name)
-        analysis_computer.biased_objects(caption_paths, id_list)
+        analysis_computer.biased_objects(
+            '../data/captions_only_valtrain2014.json', id_list
+        )
 
 def table_2_supp():
    for split_name, id_list in datasets:
