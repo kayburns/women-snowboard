@@ -76,8 +76,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  # json_path='./im2txt/data/coco/captions_val2014.json'
-  json_path='/data1/coco/annotations_trainval2014/captions_val2014.json'
+  json_path='./im2txt/data/coco/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
