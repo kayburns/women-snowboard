@@ -41,15 +41,12 @@ Any result from the paper can be recreated with [this](data_analysis/eccv_result
 python data_analysis/eccv_results_2018.py --experiments all
 ```
 
-To generate saliency maps please run.
+To generate saliency maps for pointing game please run.
 ```
 python im2txt/run_inference_with_saliency_with_gt.py --checkpoint_path=./model/DESIRED_MODEL/train --vocab_file=./data/word_counts.txt --dump_file=./FILE_NAME --model_name=./MODEL_NAME --img_path=im2txt/data/val_dataset.txt --save_path=SAVE_PATH/
 ```
 
 ## TODO
-Kaylee
-- [ ] include yaml file to set up environment + setup instructions
-
 Anja
 - [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
 
