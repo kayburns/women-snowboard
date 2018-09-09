@@ -34,8 +34,6 @@ Our experiments fine tune standard im2txt on the bias coco split. Please see the
 Training scripts are provided [here](im2txt/train_scripts/).
 
 ## Running Analysis on Generated COCO Captions
-To create "confident subset", see `scripts/make_confident_set.py`
-For amplification bias of different nouns, see `find_bigrams.py`
 Any result from the paper can be recreated with [this](data_analysis/eccv_results_2018.py) script. You can generate all of the numbers from the tables and figures by running:
 ```
 python data_analysis/eccv_results_2018.py --experiments all
