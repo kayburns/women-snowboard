@@ -47,22 +47,23 @@ tf.flags.DEFINE_boolean("train_inception", False,
 tf.flags.DEFINE_boolean("debug", False,
                         "If the model should be run in debug mode.")
 tf.flags.DEFINE_integer("number_of_steps", 1000000, "Number of training steps.")
-tf.flags.DEFINE_integer("batch_size", 32, "size of batch")  #This code will throw an error if you do not use batch size of 32 (fix inception network) or a batch size of 8 (train through inception network).
+#This code will throw an error if you do not use batch size of 32 (fix inception network) or a batch size of 8 (train through inception network).  There is nothing wrong with using a different batch size, but we did this to maintain consistency across experiments.
+tf.flags.DEFINE_integer("batch_size", 32, "size of batch")  
 tf.flags.DEFINE_integer("log_every_n_steps", 1,
                         "Frequency at which loss and global step are logged.")
 tf.flags.DEFINE_string("init_from", "", "Initialize entire model from parameters.")   
 
 #to control loss function
 tf.flags.DEFINE_integer("loss_weight_value", None, "To increase loss weight on man/woman words.")   
-tf.flags.DEFINE_boolean("blocked_image", False, "If blocked images should be included")   
-tf.flags.DEFINE_boolean("two_input_queues", False, "If you would like to use two input queues")   
-tf.flags.DEFINE_boolean("blocked_weight_selective", True, "Turn this flag off if you wonly want to look at differences in probabilities across all words")
+tf.flags.DEFINE_boolean("blocked_image", False, "If blocked images should be included in the loss function (needed for appearance confusion loss)")   
+tf.flags.DEFINE_boolean("two_input_queues", False, "If you would like to use two input queues (needed to train models which take data from multiple tfrecord files")   
+tf.flags.DEFINE_boolean("blocked_weight_selective", True, "Turn this flag off if you wonly want to look at differences in probabilities across all words.")
 tf.flags.DEFINE_integer("blocked_loss_weight", 100, "How much to weight blocked loss.")
 tf.flags.DEFINE_boolean("blocked_image_ce", False, "Flag to include cross entropy loss on blocked images")
 tf.flags.DEFINE_integer("blocked_image_ce_weight", 1, "weight for blocked image ce loss")
 tf.flags.DEFINE_boolean("confusion_word_non_blocked", False, "Flag to penalize non-blocked images if they name the wrong gender")
 tf.flags.DEFINE_float("confusion_word_non_blocked_weight", 1, "weight for blocked image ce loss")
-tf.flags.DEFINE_string("confusion_word_non_blocked_type", "subtraction",
+tf.flags.DEFINE_string("confusion_word_non_blocked_type", "quotient",
                        "Which loss to use for the confusion loss on non-blocked images.  Options: subtraction, hinge, quotient")
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -92,7 +93,7 @@ def main(unused_argv):
       model_config.blocked_input_file_pattern = FLAGS.blocked_input_file_pattern
       model_config.image_keys.append(model_config.blocked_image_feature_name)
   if FLAGS.two_input_queues:
-      assert FLAGS.input_file_pattern2, "--input_file_pattern2 is required if you would like to train with blocked images"
+      assert FLAGS.input_file_pattern2, "--input_file_pattern2 is required if you would like to train with two input queues"
       model_config.blocked_input_file_pattern = FLAGS.input_file_pattern2
       model_config.image_keys.append(model_config.image_feature_name)
   model_config.inception_checkpoint_file = FLAGS.inception_checkpoint_file

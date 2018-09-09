@@ -41,15 +41,16 @@ class AnalysisBaseClass:
         'baker', 'fans', 'they', 'manager', 'plumber', 'hands', \
         'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
     anno_dir = '../data/'
-    target_train = os.path.join(anno_dir, 'train.data')
-    target_val = os.path.join(anno_dir, 'dev.data')
-    target_test = os.path.join(anno_dir, 'test.data')
+    target_train = os.path.join(anno_dir, 'bias_splits/train.data')
+    target_val = os.path.join(anno_dir, 'bias_splits/dev.data')
+    target_test = os.path.join(anno_dir, 'bias_splits/test.data')
 
     def __init__(self, caption_paths):
         """
         caption_paths -- paths to captions that need to be analyzed
         """
         self.caption_paths = caption_paths
+        AnalysisBaseClass.caption_paths = caption_paths
         # create annotation dictionary and simplified anno dict
         img_2_anno_dict = AnalysisBaseClass.create_dict_from_list(
             pickle.load(open(AnalysisBaseClass.target_train, 'rb'))
@@ -486,7 +487,6 @@ class AnalysisBaseClass:
                                             AnalysisBaseClass.man_word_list_synonyms, 
                                             AnalysisBaseClass.woman_word_list_synonyms)
                 print "Error: %0.04f" %error 
-        import pdb; pdb.set_trace()
 
     @staticmethod
     def bias_amplification_objects(predictions):
@@ -544,7 +544,7 @@ class AnalysisBaseClass:
             for word in count_words:
                 if pred_male:
                     man_count[synonym_dict[word]] += 1
-                if pred_female:
+                elif pred_female:
                     woman_count[synonym_dict[word]] += 1
             for word in set(labels['labels'][prediction['image_id']]):
                 gt_all_count[word] += 1 
@@ -577,7 +577,6 @@ class AnalysisBaseClass:
             b += bb 
             count += 1
         print "%0.03f" %(b/count) 
-   
         return output_dict
 
     @staticmethod
@@ -598,7 +597,7 @@ class AnalysisBaseClass:
         gt_output = AnalysisBaseClass.bias_amplification_objects(gt)
 
         caption_paths_local = [caption_path for caption_path
-            in self.caption_paths
+            in AnalysisBaseClass.caption_paths
             if caption_path[0] in models_to_test]
 
         for caption_path in caption_paths_local:
@@ -710,7 +709,7 @@ class AnalysisBaseClass:
 
     @staticmethod
     def get_shopping_split(
-        fpath='../data/dev.data'
+        fpath='../data/bias_splits/dev.data'
     ):
         """Returns split from men also like shopping as list of filenames."""
         data = []
