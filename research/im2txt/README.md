@@ -48,7 +48,6 @@ python im2txt/run_inference_with_saliency_with_gt.py --checkpoint_path=./model/D
 
 ## TODO
 Kaylee
-- [ ] test: all scripts to download and tfrecord-ify all data (normal, bias, blocked), inference with saved checkpoints,  (need to rerun but data1 and data2 are full)
 - [ ] include yaml file to set up environment + setup instructions
 
 Anja
