@@ -36,9 +36,12 @@ Training scripts are provided [here](im2txt/train_scripts/).
 ## Running Analysis on Generated COCO Captions
 To create "confident subset", see `scripts/make_confident_set.py`
 For amplification bias of different nouns, see `find_bigrams.py`
-Any result from the paper can be recreated with [this](im2txt/data_analysis/eccv_results_2018.py) script.
+Any result from the paper can be recreated with [this](data_analysis/eccv_results_2018.py) script. You can generate all of the numbers from the tables and figures by running:
+```
+python data_analysis/eccv_results_2018.py --experiments all
+```
 
-## Generating saliency results (TODO: incorporate with other analysis)
+To generate saliency maps please run.
 ```
 python im2txt/run_inference_with_saliency_with_gt.py --checkpoint_path=./model/DESIRED_MODEL/train --vocab_file=./data/word_counts.txt --dump_file=./FILE_NAME --model_name=./MODEL_NAME --img_path=im2txt/data/val_dataset.txt --save_path=SAVE_PATH/
 ```
