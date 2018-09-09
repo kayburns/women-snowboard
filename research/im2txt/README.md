@@ -43,31 +43,6 @@ Any result from the paper can be recreated with [this](im2txt/data_analysis/eccv
 python im2txt/run_inference_with_saliency_with_gt.py --checkpoint_path=./model/DESIRED_MODEL/train --vocab_file=./data/word_counts.txt --dump_file=./FILE_NAME --model_name=./MODEL_NAME --img_path=im2txt/data/val_dataset.txt --save_path=SAVE_PATH/
 ```
 
-## Flags added to training code:
-### move this to doc straings in the training code? flags to train any model should be clear from scripts?
-
-input_file_pattern2: Path for an additional path to tfrecord files.  Use to train balanced model.
-
-blocked_input_file_pattern: Path to indicate path to blocked tfrecord files. 
-
-loss_weight_value:  Indicates the loss weight to place on man/woman words.  This is used for all UpWeight models in the paper.  Can only indicate one weight for man words and for woman words.
-
-blocked_image:  Whether or not to train the appearance confusion loss.
-
-two_input_queues:  Whether or not to trian data from two input queues.  This was used to train the balanced data in the paper.
-
-blocked_weight_selective:  What a confusing name!  This is the flag for sum/no-sum for the appearance confusion loss.  By default this is True.  This means that by default models will be trained as indicated in equations from the paper; mainly the difference in probabilities is only considered for gendered words.
-
-blocked_loss_weight:  How much to weight the appearance confusion loss.
-
-blocked_image_ce: Flag to include cross entropy loss on blocked images
-
-blocked_image_ce_weight:  Weight for blocked image ce loss
-
-confusion_word_non_blocked_weight:  Weight for confident loss.
-
-confusion_word_non_blocked_type: Type for confident loss (we use type quotient for our ECCV experiments). 
-
 ## TODO
 Kaylee
 - [ ] test: all scripts to download and tfrecord-ify all data (normal, bias, blocked), inference with saved checkpoints,  (need to rerun but data1 and data2 are full)
