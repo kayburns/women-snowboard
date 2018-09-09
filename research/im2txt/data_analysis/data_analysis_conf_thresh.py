@@ -1,4 +1,0 @@
-from data_analysis_base import AnalysisBaseClass, caption_paths
-
-analysis_computer = AnalysisBaseClass(caption_paths)
-analysis_computer.retrieve_accuracy_with_confidence()
