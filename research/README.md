@@ -72,10 +72,7 @@ confusion_word_non_blocked_type: Type for confident loss (we use type quotient f
 Kaylee
 - [ ] test: all scripts to download and tfrecord-ify all data (normal, bias, blocked), inference with saved checkpoints,  (need to rerun but data1 and data2 are full)
 - [ ] include yaml file to set up environment + setup instructions
-- [ ] send Lisa all weights and captions (once data2 is fast again?)
-- [ ] saliency code
-- [ ] convert creating blocked images at `scripts/SegmentationMasks.ipynb` to script
-- [ ] update with final version from eccv proceedings
+- [ ] send Lisa all weights
 
 Anja
 - [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
