@@ -1,17 +1,8 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
-This repository contains everything necessary to replicate the results in our [2018 ECCV paper](https://arxiv.org/abs/1803.09797). To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
+This repository contains everything necessary to replicate the results in our 2018 ECCV paper ([arXiv](https://arxiv.org/abs/1803.09797) and [eccv](http://openaccess.thecvf.com/content_ECCV_2018/papers/Lisa_Anne_Hendricks_Women_also_Snowboard_ECCV_2018_paper.pdf)). To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
 
 ## Getting Started
-
-### Install the required packages.
-
-- Tensorflow v1.0 
-- NumPy v??
-- nltk
-- unzip
-
-Or see the [`requirements.txt`](??) file.
 
 ### Prepare the training data.
 
@@ -43,11 +34,3 @@ To generate saliency maps for pointing game please run.
 ```
 python im2txt/run_inference_with_saliency_with_gt.py --checkpoint_path=./model/DESIRED_MODEL/train --vocab_file=./data/word_counts.txt --dump_file=./FILE_NAME --model_name=./MODEL_NAME --img_path=im2txt/data/val_dataset.txt --save_path=SAVE_PATH/
 ```
-
-## TODO
-Anja
-- [ ] code to run GradCam. should print results when `table_3_main` or `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_results_2018.py) is called.
-
-Lisa
-- [ ] add training scripts for balanced and upweight baselines to training scripts folder
-- [ ] Code to create blocked images
