@@ -35,7 +35,7 @@ The Appearance Confusion Loss requires masked images. To create masks, please se
 
 Our experiments fine tune standard im2txt on the COCO Bias split. Please see the code for [storing data as tfrecord files](im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
 
-In order to evaluation the GradCam/Saliency maps with the pointing game, we additionally save binary person masks. Please see the code [here](im2txt/save_coco_person_segmentations.py).
+In order to evaluate the GradCam/Saliency maps with the pointing game, we additionally save binary person masks. Please, see the code [here](im2txt/save_coco_person_segmentations.py).
 
 ## Training Models
 Training scripts are provided [here](im2txt/train_scripts/).
@@ -45,7 +45,7 @@ Training scripts are provided [here](im2txt/train_scripts/).
 Below we provide example commands for computing GradCam and Saliency maps for a given model (note CHECKPOINT_PATH, MODEL_NAME and JSON_PATH) and a given set of images (note IMG_PATH).
 
 ### GradCam maps
-Example commands for using ground-truth captions:
+Example commands for using ground-truth captions (as reported in the paper):
 ```
 VOCAB_FILE="./data/word_counts.txt"
 SAVE_PATH="./results_gradcam_test_gt/"
@@ -55,7 +55,7 @@ IMG_PATH="./data/balanced_split/test_woman.txt"
 python im2txt/run_inference_with_gradcam_with_gt.py   --checkpoint_path=${CHECKPOINT_PATH}   --vocab_file=${VOCAB_FILE} --model_name=${MODEL_NAME} --img_path=${IMG_PATH} --save_path=${SAVE_PATH}
 ```
 
-To compute GradCam maps using the predicted captions, please, run:
+Example commands for using the predicted captions:
 ```
 VOCAB_FILE="./data/word_counts.txt"
 SAVE_PATH="./results_gradcam_test_pred/"
@@ -68,7 +68,7 @@ python im2txt/run_inference_with_gradcam.py   --checkpoint_path=${CHECKPOINT_PAT
 We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we [include](gradcam) in our repository.
 
 ### Saliency maps
-Example commands to generate Saliency maps using ground-truth captions:
+Example commands to generate Saliency maps using ground-truth captions (as reported in the paper):
 ```
 VOCAB_FILE="./data/word_counts.txt"
 SAVE_PATH="./results_saliency_test_gt/"
@@ -87,7 +87,7 @@ python data_analysis/eccv_2018_results.py --experiments all
 ## TODO
 Anja
 - [+] code to run GradCam/Saliency
-- [ ] print results when `table_3_main` of the eccv results [script](im2txt/data_analysis/eccv_2018_results.py)
+- [ ] print results when `table_3_main` of the eccv results [script](data_analysis/eccv_2018_results.py)
 - [+] include the balanced_split
 - [ ] make coco location an argument
 
@@ -96,7 +96,7 @@ Lisa
 - [ ] Code to create blocked images
 
 Other
-- [ ] print results for `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_2018_results.py)
+- [ ] print results for `table_2_supp` of the eccv results [script](data_analysis/eccv_2018_results.py)
 - [ ] link to requirements.txt is broken
 - [ ] specify where pretrained models and captions should be extracted
 - [ ] Tab 2 does not have the Outcome Divergence
