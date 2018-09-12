@@ -21,17 +21,15 @@ To train the model you will need to provide training data in native TFRecord for
 We run our experiments on the "bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows:
 
 ```
-cd im2txt/data/bias_splits
+cd ./im2txt/data/
+mkdir bias_splits
+cd bias_splits/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/dev.data
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/train.data
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
 ```
 
-We also construct a "balanced split", where we randomly choose 500 images with women and 500 images with men from the "bias split".
-```
-TODO
-
-```
+We also construct a "balanced split", where we randomly choose 500 images with women and 500 images with men from the "bias split". We include under ./im2txt/data/balanced_split/.
 
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](scripts/SegmentationMasks.ipynb).

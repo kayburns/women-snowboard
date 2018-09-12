@@ -1,0 +1,1 @@
+/home/anja/projects/caption-bias-anja/research/im2txt/im2txt/data/dataset-splits/test-woman.txt-500.txt

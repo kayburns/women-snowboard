@@ -43,10 +43,10 @@ def save_person_segmentations(coco, cocoImgDir, coco_masks, img_path):
         img = coco.loadImgs(imgId)[0]
         save_file = '%s/COCO_%s_%012d.npy' %(coco_masks, dataType, img['id'])
         if not os.path.isfile(save_file):
-            fig = plt.figure(frameon=False)#
-            ax = fig.gca()#        
+            #fig = plt.figure(frameon=False)
+            #ax = fig.gca()
             I=mpimg.imread('%s/COCO_%s_%012d.jpg' %(cocoImgDir, dataType, imgId))
-            plt.cla()#
+            #plt.cla()
             H, W = I.shape[0:2]
             annIds = coco.getAnnIds(imgIds=img['id'], iscrowd=False)
             anns = coco.loadAnns(annIds)
@@ -55,8 +55,8 @@ def save_person_segmentations(coco, cocoImgDir, coco_masks, img_path):
             for poly in polygons:
                 rr, cc = polygon(poly[:, 0], poly[:, 1])
                 seg_map[cc, rr] = 1
-            #plt.imshow(seg_map)#
-            #plt.show()#
+            #plt.imshow(seg_map)
+            #plt.show()
             np.save(save_file, seg_map)
     print('done')
 
