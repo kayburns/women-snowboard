@@ -13,7 +13,7 @@ def get_ids(fname):
 
 # Get caption results
 caption_paths = []
-base_dir = '../final_captions_eccv2018/'
+base_dir = './final_captions_eccv2018/'
 baseline_ft = ('Baseline-FT', base_dir + 'baseline_ft.json')
 caption_paths.append(baseline_ft)
 uw = ('UpWeight', base_dir + 'upweight.json')
@@ -115,12 +115,12 @@ def table_2_supp():
        print("TODO")
 
 experiment_functions = OrderedDict([
-    #('table_1_main',table_1_main),
+    ('table_1_main',table_1_main),
     #('table_2_main',table_2_main),
     #('table_3_main',table_3_main),
     #('figure_3_main',figure_3_main),
-    ('table_1_supp',table_1_supp),
-    ('table_2_supp',table_2_supp)
+    #('table_1_supp',table_1_supp),
+    #('table_2_supp',table_2_supp)
 ])
 experiment_names = experiment_functions.keys()
 

@@ -1,6 +1,6 @@
 # Women also Snowboard: Overcoming Bias in Captioning Models 
 
-This repository contains everything necessary to replicate the results in our [2018 ECCV paper](https://arxiv.org/abs/1803.09797). To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
+This repository contains everything necessary to replicate the results in our [2018 ECCV paper](https://arxiv.org/abs/1803.09797). The captioning model (most of the code) was built off of the Tensorflow [implementation](https://github.com/tensorflow/models/tree/master/research/im2txt). Thank you to the original author @cshallue.
 
 ## Getting Started
 
@@ -15,6 +15,8 @@ This repository contains everything necessary to replicate the results in our [2
 Or see the [`requirements.txt`](??) file.
 
 ### Prepare the data.
+
+To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both [here](.).
 
 To train the model you will need to provide training data in native TFRecord format. Code is available [here](im2txt/data/download_and_preprocess_mscoco.sh) and detailed [instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) about downloading and preprocessing the data are available in the original repo.
 
@@ -49,7 +51,7 @@ Example commands for using ground-truth captions (as reported in the paper):
 ```
 VOCAB_FILE="./data/word_counts.txt"
 SAVE_PATH="./results_gradcam_test_gt/"
-CHECKPOINT_PATH="./model/baseline_ft/train/model.ckpt-1500000"
+CHECKPOINT_PATH="./final_weights_eccv2018/baseline_ft/train/model.ckpt-1500000"
 MODEL_NAME="baseline_ft"
 IMG_PATH="./data/balanced_split/test_woman.txt"
 python im2txt/run_inference_with_gradcam_with_gt.py   --checkpoint_path=${CHECKPOINT_PATH}   --vocab_file=${VOCAB_FILE} --model_name=${MODEL_NAME} --img_path=${IMG_PATH} --save_path=${SAVE_PATH}
@@ -59,7 +61,7 @@ Example commands for using the predicted captions:
 ```
 VOCAB_FILE="./data/word_counts.txt"
 SAVE_PATH="./results_gradcam_test_pred/"
-CHECKPOINT_PATH="./model/baseline_ft/train/model.ckpt-1500000"
+CHECKPOINT_PATH="./final_weights_eccv2018/baseline_ft/train/model.ckpt-1500000"
 JSON_PATH="../final_captions_eccv2018/baseline_ft.json"
 IMG_PATH="./data/balanced_split/test_woman.txt"
 python im2txt/run_inference_with_gradcam.py   --checkpoint_path=${CHECKPOINT_PATH}   --vocab_file=${VOCAB_FILE} --json_path=${JSON_PATH} --img_path=${IMG_PATH} --save_path=${SAVE_PATH}
@@ -72,7 +74,7 @@ Example commands to generate Saliency maps using ground-truth captions (as repor
 ```
 VOCAB_FILE="./data/word_counts.txt"
 SAVE_PATH="./results_saliency_test_gt/"
-CHECKPOINT_PATH="./model/baseline_ft/train/model.ckpt-1500000"
+CHECKPOINT_PATH="./final_weights_eccv2018/baseline_ft/train/model.ckpt-1500000"
 MODEL_NAME="baseline_ft"
 IMG_PATH="./data/balanced_split/test_woman.txt"
 python im2txt/run_inference_with_saliency_with_gt.py   --checkpoint_path=${CHECKPOINT_PATH}   --vocab_file=${VOCAB_FILE} --model_name=${MODEL_NAME} --img_path=${IMG_PATH} --save_path=${SAVE_PATH} --mask_size=32
