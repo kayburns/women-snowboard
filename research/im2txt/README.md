@@ -29,12 +29,14 @@ curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
 ```
 
-We also construct a "balanced split", where we randomly choose 500 images with women and 500 images with men from the "bias split". We include under ./im2txt/data/balanced_split/.
+We also construct a "balanced split", where we randomly choose 500 images with women and 500 images with men from the "bias split". We include it under "./im2txt/data/balanced_split/".
 
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](scripts/SegmentationMasks.ipynb).
 
 Our experiments fine tune standard im2txt on the bias coco split. Please see the code for [storing data as tfrecord files](im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
+
+In order to evaluation the GradCam/Saliency maps with the pointing game, we additionally save binary person masks. Please see the code [here](im2txt/save_coco_person_segmentations.py).
 
 ## Training Models
 Training scripts are provided [here](im2txt/train_scripts/).
@@ -64,7 +66,7 @@ python im2txt/run_inference_with_gradcam.py   --checkpoint_path=${CHECKPOINT_PAT
 
 Note that CHECKPOINT_PATH, MODEL_NAME and JSON_PATH are model-specific, IMG_PATH is a file with a list of image IDs.
 
-We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we include under im2test/gradcam.
+We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we include under "./im2test/gradcam".
 
 ### Saliency maps
 Example commands to generate Saliency maps using ground-truth captions:
@@ -77,13 +79,6 @@ IMG_PATH="./data/balanced_split/test_woman.txt"
 python im2txt/run_inference_with_saliency_with_gt.py   --checkpoint_path=${CHECKPOINT_PATH}   --vocab_file=${VOCAB_FILE} --model_name=${MODEL_NAME} --img_path=${IMG_PATH} --save_path=${SAVE_PATH} --mask_size=32
 ```
 
-### Person segentation masks
-In order to evaluation the predicted maps with the pointing game, we additionally save binary person masks as follows:
-```
-python im2txt/save_coco_person_segmentations.py
-```
-
-
 ## Running Analysis on Generated COCO Captions
 Any result from the paper can be recreated with [this](data_analysis/eccv_2018_results.py) script. You can generate all of the numbers from the tables and figures by running:
 ```
@@ -92,9 +87,9 @@ python data_analysis/eccv_2018_results.py --experiments all
 
 ## TODO
 Anja
-- [ ] code to run GradCam/Saliency
+- [+] code to run GradCam/Saliency
 - [ ] print results when `table_3_main` of the eccv results [script](im2txt/data_analysis/eccv_2018_results.py)
-- [ ] provide links to the balanced_split
+- [+] include the balanced_split
 - [ ] make coco location an argument
 
 Lisa
