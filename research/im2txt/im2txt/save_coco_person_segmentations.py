@@ -30,21 +30,10 @@ def get_polygons(anns, catIds, W, H):
                 polygons.append(poly)                
     return polygons
 
+def save_person_segmentations(coco, cocoImgDir, coco_masks, img_path):    
+    catIds = coco.getCatIds(catNms='person');
+    person_id = catIds[0]
 
-coco_dir = 'im2txt/data/mscoco/'
-dataType = 'val2014'
-annFile='{}/annotations/instances_{}.json'.format(coco_dir,dataType)
-cocoImgDir = '{}/images/{}/'.format(coco_dir, dataType)
-coco_masks = '{}/masks/{}/'.format(coco_dir, dataType)
-
-if not os.path.isdir(coco_masks):
-    os.makedirs(coco_masks)
-  
-coco=COCO(annFile)
-catIds = coco.getCatIds(catNms='person');
-person_id = catIds[0]
-
-def save_person_segmentations(img_path):
     lines = open(img_path, 'r').readlines()
     imgIds = [int(line) for line in lines]
     imgIds = list(set(imgIds) & set(coco.getImgIds()))
@@ -72,8 +61,20 @@ def save_person_segmentations(img_path):
     print('done')
 
 if __name__ == "__main__":
-    save_person_segmentations('./data/balanced_split/val_woman.txt')
-    save_person_segmentations('./data/balanced_split/val_man.txt')
-    save_person_segmentations('./data/balanced_split/test_woman.txt')
-    save_person_segmentations('./data/balanced_split/test_man.txt')
+    coco_dir = 'im2txt/data/mscoco/' # Anja: make it an argument
+
+    dataType = 'val2014'
+    annFile='{}/annotations/instances_{}.json'.format(coco_dir,dataType)
+    cocoImgDir = '{}/images/{}/'.format(coco_dir, dataType)
+    coco_masks = '{}/masks/{}/'.format(coco_dir, dataType)
+
+    if not os.path.isdir(coco_masks):
+        os.makedirs(coco_masks)
+   
+    coco=COCO(annFile)
+
+    save_person_segmentations(coco, cocoImgDir, coco_masks, './data/balanced_split/val_woman.txt')
+    save_person_segmentations(coco, cocoImgDir, coco_masks, './data/balanced_split/val_man.txt')
+    save_person_segmentations(coco, cocoImgDir, coco_masks, './data/balanced_split/test_woman.txt')
+    save_person_segmentations(coco, cocoImgDir, coco_masks, './data/balanced_split/test_man.txt')
 

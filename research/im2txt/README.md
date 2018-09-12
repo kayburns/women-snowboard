@@ -8,13 +8,13 @@ This repository contains everything necessary to replicate the results in our [2
 
 - Tensorflow v1.0 
 - NumPy v??
-- nltk, punkt (>>> import nltk  >>> nltk.download('punkt'))
+- nltk, punkt (>> import nltk  >> nltk.download('punkt'))
 - pattern
 - unzip
 
 Or see the [`requirements.txt`](??) file.
 
-### Prepare the training data.
+### Prepare the data.
 
 To train the model you will need to provide training data in native TFRecord format. Code is available [here](im2txt/data/download_and_preprocess_mscoco.sh) and detailed [instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) about downloading and preprocessing the data are available in the original repo.
 
@@ -26,6 +26,13 @@ curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/train.data
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
 ```
+
+We also construct a "balanced split", where we randomly choose 500 images with women and 500 images with men from the "bias split".
+```
+TODO
+
+```
+
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](scripts/SegmentationMasks.ipynb).
 
@@ -59,7 +66,7 @@ python im2txt/run_inference_with_gradcam.py   --checkpoint_path=${CHECKPOINT_PAT
 
 Note that CHECKPOINT_PATH, MODEL_NAME and JSON_PATH are model-specific, IMG_PATH is a file with a list of image IDs.
 
-We thank @PAIR-code for providing the GradCam [implementation](PAIR-code/saliency), which we include under im2test/gradcam.
+We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we include under im2test/gradcam.
 
 ### Saliency maps
 Example commands to generate Saliency maps using ground-truth captions:
@@ -90,6 +97,7 @@ Anja
 - [ ] code to run GradCam/Saliency
 - [ ] print results when `table_3_main` of the eccv results [script](im2txt/data_analysis/eccv_2018_results.py)
 - [ ] provide links to the balanced_split
+- [ ] make coco location an argument
 
 Lisa
 - [ ] add training scripts for balanced and upweight baselines to training scripts folder
