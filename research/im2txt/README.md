@@ -100,7 +100,7 @@ Lisa
 Other
 - [ ] print results for `table_2_supp` of the eccv results [script](data_analysis/eccv_2018_results.py)
 - [ ] link to requirements.txt is broken
-- [ ] specify where pretrained models and captions should be extracted
+- [+] specify where pretrained models and captions should be extracted
 - [ ] Tab 2 does not have the Outcome Divergence
 - [ ] "table_1_supp" does not work, as data/object_lists files are missing
 - [ ] add ./data/captions_only_valtrain2014.json or the code to get it
