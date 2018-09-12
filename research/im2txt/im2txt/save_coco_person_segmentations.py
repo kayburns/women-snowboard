@@ -5,8 +5,6 @@ import os.path as osp
 import PIL.Image
 import matplotlib
 import sys
-sys.path.append('im2txt/data/mscoco/PythonAPI')
-from pycocotools.coco import COCO
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.draw import polygon
@@ -62,6 +60,9 @@ def save_person_segmentations(coco, cocoImgDir, coco_masks, img_path):
 
 if __name__ == "__main__":
     coco_dir = 'im2txt/data/mscoco/' # Anja: make it an argument
+
+    sys.path.append(coco_dir + '/PythonAPI')
+    from pycocotools.coco import COCO
 
     dataType = 'val2014'
     annFile='{}/annotations/instances_{}.json'.format(coco_dir,dataType)
