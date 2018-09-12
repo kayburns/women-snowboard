@@ -31,7 +31,7 @@ curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
 ```
 
-We also construct a ["Balanced split"](im2txt/data/balanced_split/), where we randomly choose 500 images with women and 500 images with men from the "Bias split".
+We also construct a ["Balanced split"](data/balanced_split/), where we randomly choose 500 images with women and 500 images with men from the "Bias split".
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](scripts/SegmentationMasks.ipynb).
 
@@ -40,7 +40,7 @@ Our experiments fine tune standard im2txt on the COCO Bias split. Please see the
 In order to evaluate the GradCam/Saliency maps with the pointing game, we additionally save binary person masks. Please, see the code [here](im2txt/save_coco_person_segmentations.py).
 
 ## Training Models
-Training scripts are provided [here](im2txt/train_scripts/).
+Training scripts are provided [here](train_scripts/).
 
 ## Generating GradCam and Saliency maps
 
