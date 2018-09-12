@@ -25,12 +25,14 @@ from im2txt import show_and_tell_model
 from im2txt.inference_utils import inference_wrapper_base
 import numpy as np
 
+import matplotlib
+# Fix to run remotely (with no display)
+# matplotlib.use('agg')
 
 import tensorflow as tf
 import PIL.Image
 from matplotlib import pylab as P
 import pickle
-import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import os
@@ -39,6 +41,7 @@ slim=tf.contrib.slim
 import scipy
 import sys
 sys.path.append('gradcam')
+
 
 def transparent_cmap(cmap, N=255):
   "Copy colormap and set alpha values"
@@ -62,11 +65,6 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
 
   def process_image(self, sess, encoded_image, input_feed, filename, vocab, word_index=1, word_id=None, save_path=None):
     graph = tf.get_default_graph()
-    #images, inputs, targets = sess.run(fetches=["concat:0", "ExpandDims_7:0", "ExpandDims_8:0"], feed_dict={"image_feed:0": encoded_image, "input_feed:0": input_feed})
-    #softmaxes, losses = sess.run(
-    #                         fetches=["logits/BiasAdd:0", "SparseSoftmaxCrossEntropyWithLogits/Reshape_2:0"],
-    #                         feed_dict={"image_feed:0": encoded_image, "input_feed:0": input_feed})
-    #before_softmax_0 = sess.run(fetches=["logits/BiasAdd:0"], feed_dict={"image_feed:0": encoded_image, "input_feed:0": input_feed})
     softmax = sess.run(fetches=["softmax:0"], feed_dict={"image_feed:0": encoded_image, "input_feed:0": input_feed})
     logits = graph.get_tensor_by_name('softmax:0')
     neuron_selector = tf.placeholder(tf.int32)
@@ -74,14 +72,12 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
         
     pred_max = np.argmax(softmax[0][0][word_index])
     if word_id != None:
-      print('predicted: ' + vocab.id_to_word(pred_max) + ', beam search: ' + vocab.id_to_word(word_id))
+      print('%s\tpredicted: %s with prob %f , given: %s with prob %.10f' % (filename, vocab.id_to_word(pred_max), np.max(softmax[0][0][word_index]), vocab.id_to_word(word_id), softmax[0][0][word_index][word_id]))
       pred_max = word_id
     
     from grad_cam import GradCam
     grad_cam = GradCam(graph, sess, neuron_pred, graph.get_tensor_by_name('concat:0'), conv_layer = graph.get_tensor_by_name('InceptionV3/InceptionV3/Mixed_7c/concat:0'))
 
-
-    #START VISUALIZATION
     input_image = PIL.Image.open(filename)
     input_image = input_image.convert('RGB')
     
@@ -89,7 +85,8 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     im_resized = scipy.misc.imresize(im, (299, 299), interp='bilinear', mode=None)    
     im_resized = im_resized / 127.5 - 1.0
 
-    grad_mask_2d = grad_cam.GetMask(im_resized, feed_dict = {neuron_selector: pred_max, "input_feed:0": input_feed}, should_resize = False, three_dims = False)            
+    grad_mask_2d = grad_cam.GetMask(im_resized, feed_dict = {neuron_selector: pred_max, "input_feed:0": input_feed}, should_resize = False, three_dims = False)   
+    # if np.min(grad_mask_2d) == np.max(grad_mask_2d): grad_mask_2d[0,0]=1.0000001 # Fix for a bug that happens very rarely
     
     mycmap = transparent_cmap(plt.cm.jet)
 
@@ -105,30 +102,16 @@ class GradCamWrapper(inference_wrapper_base.InferenceWrapperBase):
     vmin = np.min(grad_mask_2d_upscaled)
     mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
 
-    #START VISUALIZATION
     fig, ax = plt.subplots(1, 1)
     plt.axis('off')
     ax.imshow( ((im_resized + 1.0) * 127.5)/255.0)
     cb = ax.contourf(x, y, mask_grayscale_upscaled, 15, cmap=mycmap)
-
-    if save_path != None:
+    
+    if save_path != None and save_path != '':
       np.save(save_path + osp.basename(filename)[0:-4] + '_' + vocab.id_to_word(pred_max) + '.npy', grad_mask_2d)
       plt.savefig(save_path + osp.basename(filename)[0:-4] + '_' + vocab.id_to_word(pred_max) + '.jpg', bbox_inches='tight')
       plt.close()
     else:
       plt.show()
- 
-    #Vis should be an array of the values you want to overlay on the image
-    #vis_img = PIL.Image.fromarray(grad_mask_2d, None)
-    #vis_img = vis_img.resize((299,299),PIL.Image.BILINEAR)
-    #vis_img = vis_img / np.max(vis_img)
 
-    #vis_img = PIL.Image.fromarray(np.uint8(matplotlib.cm.jet(mask_grayscale_upscaled) * 255))
-    #vis_img = vis_img.convert('RGB') # dropping alpha channel
-    #input_image = input_image.resize((299,299),PIL.Image.BILINEAR)
-    #input_image = input_image.convert('RGB')
-    #heat_map = PIL.Image.blend(input_image, vis_img, 0.3)
-    #plt.imshow(heat_map)
-    #plt.axis('off')
-    #plt.show()
 

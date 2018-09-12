@@ -40,15 +40,14 @@ from im2txt import configuration
 from im2txt import gradcam_wrapper
 from im2txt.inference_utils import vocabulary
 
-def prepare_resize_saliency(grad_mask_2d, w, h):
-  #grad_mask_2d_norm = grad_mask_2d / np.max(grad_mask_2d)
-  #grad_mask_2d_upscaled = scipy.misc.imresize(grad_mask_2d_norm, (w, h), interp='bilinear', mode='F')    
-  #percentile = 99
-  #vmax = np.percentile(grad_mask_2d_upscaled, percentile)
-  #vmin = np.min(grad_mask_2d_upscaled)
-  #mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
-  grad_mask_2d_upscaled = scipy.misc.imresize(grad_mask_2d, (w, h), interp='bilinear', mode='F')
-  return grad_mask_2d_upscaled #mask_grayscale_upscaled
+def prepare_resize_gradcam(grad_mask_2d, w, h):
+  grad_mask_2d_norm = grad_mask_2d / np.max(grad_mask_2d)
+  grad_mask_2d_upscaled = scipy.misc.imresize(grad_mask_2d_norm, (w, h), interp='bilinear', mode='F')    
+  percentile = 99
+  vmax = np.percentile(grad_mask_2d_upscaled, percentile)
+  vmin = np.min(grad_mask_2d_upscaled)
+  mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
+  return mask_grayscale_upscaled
 
 def transparent_cmap(cmap, N=255):
   "Copy colormap and set alpha values"
@@ -64,10 +63,6 @@ tf.flags.DEFINE_string("checkpoint_path", "",
                        "Model checkpoint file or directory containing a "
                        "model checkpoint file.")
 tf.flags.DEFINE_string("vocab_file", "", "Text file containing the vocabulary.")
-tf.flags.DEFINE_string("dump_file", "", "Text file containing the vocabulary.")
-#tf.flags.DEFINE_string("input_files", "",
-#                       "File pattern or comma-separated list of file patterns "
-#                       "of image files.")
 tf.flags.DEFINE_string("model_name", "", "Model name equivalebt to the JSON prediction file.")
 tf.flags.DEFINE_string("img_path", "", "Text file containing image IDs.")
 tf.flags.DEFINE_string("save_path", "", "Path to the location where outputs should be saved.")
@@ -90,9 +85,6 @@ exclude = [] #  'man', 'woman', 'person'
 #exclude = ['_woman']
 
 def main(_):
-  import ipdb
-  #ipdb.set_trace()
-
   save_path = osp.join(FLAGS.save_path, osp.basename(FLAGS.model_name)+'_gt')
 
   # Create the vocabulary.
@@ -116,11 +108,11 @@ def main(_):
       caption = entry['caption']
       caption = caption.lower()
       tokens = caption.split(' ')      
-      if '_man' in FLAGS.img_path: look_for = 'man'
-      elif '_woman' in FLAGS.img_path: look_for = 'woman'
+      if '_man' in FLAGS.img_path: look_for = 'man' # Anja: expect a certain filename
+      elif '_woman' in FLAGS.img_path: look_for = 'woman' # Anja: expect a certain filename
       else: assert(False)
       if look_for in tokens:
-        json_dict[image_id] = caption
+        json_dict[image_id] = entry['caption']
     if len(json_dict) == 500: break
 
   image_ids = json_dict.keys()
@@ -134,23 +126,39 @@ def main(_):
   global_count = 0
   for i, image_id in enumerate(image_ids):
     image_id = int(image_id)
-
+    sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
     filename = 'im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+
+    #input_image = PIL.Image.open(filename)
+    #input_image = input_image.convert('RGB')    
+    #im = np.asarray(input_image)
+    #im_resized = scipy.misc.imresize(im, (W, H), interp='bilinear', mode=None)    
+    #im_resized = im_resized / 127.5 - 1.0
+    #w = im_resized.shape[0]
+    #h = im_resized.shape[1]
+    #y, x = np.mgrid[0:h, 0:w]
+    #mycmap = transparent_cmap(plt.cm.jet)
 
     coco_mask_file = '%s/COCO_%s_%012d.npy' %(coco_masks, dataType, image_id)
     coco_mask = np.load(coco_mask_file)
     if np.sum(coco_mask) == 0: 
       # no person mask
+      #import ipdb; ipdb.set_trace()
       continue
     if W > 0:
       coco_mask_resized = scipy.misc.imresize(coco_mask, (W, H), interp='bilinear', mode=None)
-      coco_mask_resized_notnormalized = coco_mask_resized.copy()
-      coco_mask_resized_notnormalized = coco_mask_resized_notnormalized / 255.0
       coco_mask_resized = coco_mask_resized / float(np.sum(coco_mask_resized))
 
-    if image_id not in json_dict:        
+    #fig = plt.figure(frameon=False)
+    #plt.imshow(coco_mask_resized)
+    #plt.show()
+    #plt.close()
+
+    if image_id not in json_dict: # Anja: unnecessary     
       continue
     caption = json_dict[image_id]
+    caption = caption.lower()
+    print(caption)
     if caption[-1] == '.':
       caption = caption[0:-1]      
     tokens = caption.split(' ')
@@ -171,18 +179,15 @@ def main(_):
             exclude_file = True
             break
         if exclude_file: continue
-        saliency_mask = np.load(gradcam_file)
+        gradcam_mask = np.load(gradcam_file)
         if W > 0:
-          mask_grayscale_upscaled = prepare_resize_saliency(saliency_mask, W, H)
+          mask_grayscale_upscaled = prepare_resize_gradcam(gradcam_mask, W, H)
           mask_grayscale_upscaled = mask_grayscale_upscaled / float(np.sum(mask_grayscale_upscaled))
           met = metrics.heatmap_metrics(coco_mask_resized,
                               mask_grayscale_upscaled,
                               gt_type='human', SIZE=(W,H))
-          met_notnormalized = metrics.heatmap_metrics(coco_mask_resized_notnormalized,
-                              mask_grayscale_upscaled,
-                              gt_type='human', SIZE=(W,H))
         else:
-          mask_grayscale_upscaled = prepare_resize_saliency(saliency_mask, coco_mask.shape[0], coco_mask.shape[1])
+          mask_grayscale_upscaled = prepare_resize_gradcam(gradcam_mask, coco_mask.shape[0], coco_mask.shape[1])
           mask_grayscale_upscaled = mask_grayscale_upscaled / float(np.sum(mask_grayscale_upscaled))
           met = metrics.heatmap_metrics(coco_mask,
                               mask_grayscale_upscaled,
@@ -213,9 +218,10 @@ def main(_):
   #print("SPEAR: %.5f" % float(spear_sum/global_count))
   #print("rank: %.5f" % float(rank_sum/global_count))
   #print("iou: %.8f" % float(iou_sum/global_count))
-  print("pointing: %.3f" % float(pointing_sum/global_count))
+  print("pointing: %.5f" % float(pointing_sum/global_count))
   #print("%.3f\t%.5f\t%.5f\t%.8f\t%d" % (float(emd_sum/global_count), float(spear_sum/global_count),
   #                                      float(rank_sum/global_count), float(iou_sum/global_count), global_count))
 
 if __name__ == "__main__":
   tf.app.run()
+

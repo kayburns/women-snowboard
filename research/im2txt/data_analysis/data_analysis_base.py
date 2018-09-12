@@ -40,7 +40,7 @@ class AnalysisBaseClass:
         'artist', 'citizen', 'youths', 'staff', 'biker', 'technician', 'hand', \
         'baker', 'fans', 'they', 'manager', 'plumber', 'hands', \
         'team', 'teams','performer', 'performers', 'couples', 'rollerblader']
-    anno_dir = '../data/'
+    anno_dir = './data/'
     target_train = os.path.join(anno_dir, 'bias_splits/train.data')
     target_val = os.path.join(anno_dir, 'bias_splits/dev.data')
     target_test = os.path.join(anno_dir, 'bias_splits/test.data')
@@ -71,7 +71,8 @@ class AnalysisBaseClass:
         self.img_2_anno_dict = img_2_anno_dict
         self.img_2_anno_dict_simple = img_2_anno_dict_simple
 
-    gt_path = '../data/captions_only_valtrain2014.json'
+    #import ipdb; ipdb.set_trace()
+    gt_path = './data/captions_only_valtrain2014.json'
     gt_caps_list = json.load(open(gt_path))['annotations']
     gt_caps = collections.defaultdict(list)
     for cap in gt_caps_list:
@@ -709,7 +710,7 @@ class AnalysisBaseClass:
 
     @staticmethod
     def get_shopping_split(
-        fpath='../data/bias_splits/dev.data'
+        fpath='./data/bias_splits/dev.data'
     ):
         """Returns split from men also like shopping as list of filenames."""
         data = []

@@ -36,17 +36,17 @@ shopping_dev_split_ids = analysis_computer.convert_filenames_to_ids(
     shopping_dev_split
 )
 shopping_test_split = analysis_computer.get_shopping_split(
-    fpath='../data/test.data'
+    fpath='./data/bias_splits/test.data'
 )
 shopping_test_split_ids = analysis_computer.convert_filenames_to_ids(
     shopping_test_split
 )
 
-balanced_dev = get_ids('balanced_split/val_man.txt') + \
-    get_ids('balanced_split/val_woman.txt') 
+balanced_dev = get_ids('./data/balanced_split/val_man.txt') + \
+    get_ids('./data/balanced_split/val_woman.txt') 
 
-balanced_test = get_ids('balanced_split/test_man.txt') + \
-    get_ids('balanced_split/test_woman.txt') 
+balanced_test = get_ids('./data/balanced_split/test_man.txt') + \
+    get_ids('./data/balanced_split/test_woman.txt') 
 
 datasets = [
     ('COCO Bias (Val)',shopping_dev_split_ids),
@@ -106,7 +106,7 @@ def table_1_supp():
     for split_name, id_list in datasets:
         print('---------------------- %s ----------------------' % split_name)
         analysis_computer.biased_objects(
-            '../data/captions_only_valtrain2014.json', id_list
+            './data/captions_only_valtrain2014.json', id_list
         )
 
 def table_2_supp():
@@ -115,10 +115,10 @@ def table_2_supp():
        print("TODO")
 
 experiment_functions = OrderedDict([
-    ('table_1_main',table_1_main),
-    ('table_2_main',table_2_main),
-    ('table_3_main',table_3_main),
-    ('figure_3_main',figure_3_main),
+    #('table_1_main',table_1_main),
+    #('table_2_main',table_2_main),
+    #('table_3_main',table_3_main),
+    #('figure_3_main',figure_3_main),
     ('table_1_supp',table_1_supp),
     ('table_2_supp',table_2_supp)
 ])

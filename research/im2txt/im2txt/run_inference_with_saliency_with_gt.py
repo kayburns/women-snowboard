@@ -37,18 +37,16 @@ from im2txt import configuration
 from im2txt import saliency_wrapper
 from im2txt.inference_utils import vocabulary
 
+sys.path.append('scripts/')
 from mask_utils import generate_image_masks
 
 FLAGS = tf.flags.FLAGS
 
-tf.flags.DEFINE_string("checkpoint_path", "",
-                       "Model checkpoint file or directory containing a "
-                       "model checkpoint file.")
+tf.flags.DEFINE_string("checkpoint_path", "", "Model checkpoint file.")
 tf.flags.DEFINE_string("vocab_file", "", "Text file containing the vocabulary.")
 tf.flags.DEFINE_integer("mask_size", 32, "Size of the mask.")
-tf.flags.DEFINE_string("dump_file", "", "File to save output.")
-tf.flags.DEFINE_string("model_name", "", "Model name equivalent to the JSON prediction file.")
-tf.flags.DEFINE_string("img_path", "", "Text file containing image IDs.")
+tf.flags.DEFINE_string("model_name", "", "Model name.")
+tf.flags.DEFINE_string("img_path", "", "Text file containing 500 image IDs (balanced set).")
 tf.flags.DEFINE_string("save_path", "", "Path to the location where outputs should be saved.")
 
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -56,7 +54,6 @@ tf.logging.set_verbosity(tf.logging.INFO)
 def main(_):
   # Build the inference graph.
   g = tf.Graph()
-  #import pdb; pdb.set_trace()
   with g.as_default():
     model = saliency_wrapper.SaliencyWrapper()
     restore_fn = model.build_graph_from_config(configuration.ModelConfig(),
@@ -76,7 +73,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path='./im2txt/data/coco/captions_val2014.json'
+  json_path='./im2txt/data/mscoco/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
@@ -86,8 +83,8 @@ def main(_):
       caption = entry['caption']
       caption = caption.lower()
       tokens = caption.split(' ')
-      if '-man' in FLAGS.img_path: look_for = 'man'
-      elif '-woman' in FLAGS.img_path: look_for = 'woman'
+      if '_man' in FLAGS.img_path: look_for = 'man'
+      elif '_woman' in FLAGS.img_path: look_for = 'woman'
       else: assert(False)
       if look_for in tokens:
         json_dict[image_id] = caption
@@ -100,6 +97,7 @@ def main(_):
     # Load the model from checkpoint.
     restore_fn(sess)
 
+    # we temporarily story masked files here
     mask_dir_base = './data/mask-out-ims/%s_mask_size_%d/' %(FLAGS.model_name, FLAGS.mask_size)
     if not os.path.exists(mask_dir_base):
         os.makedirs(mask_dir_base)
@@ -108,7 +106,7 @@ def main(_):
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      original_filename = './data/coco/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+      original_filename = './im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
       mask_dir = '%s/%s/' %(mask_dir_base, image_id)
       if not os.path.exists(mask_dir):
@@ -116,8 +114,7 @@ def main(_):
       generate_image_masks(original_filename, mask_dir, FLAGS.mask_size)
       mask_filenames = sorted(glob.glob('%s/*' %mask_dir))
 
-      # loop over all masked images
-      import pdb;pdb.set_trace()
+      # loop over all masked images      
       images = []
       for filename in mask_filenames: 
           with tf.gfile.GFile(filename, "r") as f:
@@ -154,10 +151,13 @@ def main(_):
             save_path_pre = ""
           model.process_image(sess, images, encoded_tokens, original_filename, mask_filenames, vocab, word_index=wid-1, word_id=woman_id, save_path=save_path_pre)
           global_index += 1
+      
       for filename in mask_filenames:
           os.remove(filename)
+      os.rmdir(mask_dir)
       import gc
       gc.collect()
 
 if __name__ == "__main__":
   tf.app.run()
+

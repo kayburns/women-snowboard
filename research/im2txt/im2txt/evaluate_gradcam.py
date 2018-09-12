@@ -40,15 +40,14 @@ from im2txt import configuration
 from im2txt import gradcam_wrapper
 from im2txt.inference_utils import vocabulary
 
-def prepare_resize_saliency(grad_mask_2d, w, h):
-  #grad_mask_2d_norm = grad_mask_2d / np.max(grad_mask_2d)
-  #grad_mask_2d_upscaled = scipy.misc.imresize(grad_mask_2d_norm, (w, h), interp='bilinear', mode='F')    
-  #percentile = 99
-  #vmax = np.percentile(grad_mask_2d_upscaled, percentile)
-  #vmin = np.min(grad_mask_2d_upscaled)
-  #mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
-  grad_mask_2d_upscaled = scipy.misc.imresize(grad_mask_2d, (w, h), interp='bilinear', mode='F')
-  return grad_mask_2d_upscaled #mask_grayscale_upscaled
+def prepare_resize_gradcam(grad_mask_2d, w, h):
+  grad_mask_2d_norm = grad_mask_2d / np.max(grad_mask_2d)
+  grad_mask_2d_upscaled = scipy.misc.imresize(grad_mask_2d_norm, (w, h), interp='bilinear', mode='F')    
+  percentile = 99
+  vmax = np.percentile(grad_mask_2d_upscaled, percentile)
+  vmin = np.min(grad_mask_2d_upscaled)
+  mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
+  return mask_grayscale_upscaled
 
 def transparent_cmap(cmap, N=255):
   "Copy colormap and set alpha values"
@@ -64,11 +63,7 @@ tf.flags.DEFINE_string("checkpoint_path", "",
                        "Model checkpoint file or directory containing a "
                        "model checkpoint file.")
 tf.flags.DEFINE_string("vocab_file", "", "Text file containing the vocabulary.")
-tf.flags.DEFINE_string("dump_file", "", "Text file containing the vocabulary.")
-#tf.flags.DEFINE_string("input_files", "",
-#                       "File pattern or comma-separated list of file patterns "
-#                       "of image files.")
-tf.flags.DEFINE_string("model_name", "", "Model name equivalebt to the JSON prediction file.")
+tf.flags.DEFINE_string("json_path", "", "JSON file with model predictions.")
 tf.flags.DEFINE_string("img_path", "", "Text file containing image IDs.")
 tf.flags.DEFINE_string("save_path", "", "Path to the location where outputs should be saved.")
 
@@ -83,47 +78,36 @@ W = -1 # -1 8 32
 H = -1 # -1 8 32
 
 exclude = [] #  'man', 'woman', 'person'
-#exclude = ['_person']
+exclude = ['_person']
 #exclude = ['_person', '_man']
 #exclude = ['_person', '_woman']
-#exclude = ['_man']
-#exclude = ['_woman']
 
 def main(_):
-  import ipdb
-  #ipdb.set_trace()
+  #import ipdb; ipdb.set_trace()
 
-  save_path = osp.join(FLAGS.save_path, osp.basename(FLAGS.model_name)+'_gt')
+  save_path = osp.join(FLAGS.save_path, osp.basename(FLAGS.json_path)[0:-5])
 
   # Create the vocabulary.
   vocab = vocabulary.Vocabulary(FLAGS.vocab_file)
   man_id = vocab.word_to_id('man')
   woman_id = vocab.word_to_id('woman')
-  #person_id = vocab.word_to_id('person')
+  person_id = vocab.word_to_id('person')
+
+  json_data = json.load(open(FLAGS.json_path, 'r'))
+  json_dict = {}
+  for entry in json_data:
+    image_id = entry['image_id']
+    if image_id not in json_dict:
+      caption = entry['caption']
+      caption = caption.lower()
+      json_dict[image_id] = caption      
+    else:
+      ipdb.set_trace()
 
   of = open(FLAGS.img_path, 'r')
   image_ids = of.read().split('\n')
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
-
-  json_path = 'im2txt/data/mscoco/annotations/captions_val2014.json'
-  json_data = json.load(open(json_path, 'r'))
-  json_dict = {}
-  for entry in json_data['annotations']:
-    image_id = entry['image_id']
-    if str(image_id) not in image_ids: continue
-    if image_id not in json_dict:
-      caption = entry['caption']
-      caption = caption.lower()
-      tokens = caption.split(' ')      
-      if '_man' in FLAGS.img_path: look_for = 'man'
-      elif '_woman' in FLAGS.img_path: look_for = 'woman'
-      else: assert(False)
-      if look_for in tokens:
-        json_dict[image_id] = caption
-    if len(json_dict) == 500: break
-
-  image_ids = json_dict.keys()
 
   emd_sum = 0
   spear_sum = 0
@@ -134,8 +118,18 @@ def main(_):
   global_count = 0
   for i, image_id in enumerate(image_ids):
     image_id = int(image_id)
-
+    #sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
     filename = 'im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+
+    #input_image = PIL.Image.open(filename)
+    #input_image = input_image.convert('RGB')    
+    #im = np.asarray(input_image)
+    #im_resized = scipy.misc.imresize(im, (W, H), interp='bilinear', mode=None)    
+    #im_resized = im_resized / 127.5 - 1.0
+    #w = im_resized.shape[0]
+    #h = im_resized.shape[1]
+    #y, x = np.mgrid[0:h, 0:w]
+    #mycmap = transparent_cmap(plt.cm.jet)
 
     coco_mask_file = '%s/COCO_%s_%012d.npy' %(coco_masks, dataType, image_id)
     coco_mask = np.load(coco_mask_file)
@@ -148,9 +142,17 @@ def main(_):
       coco_mask_resized_notnormalized = coco_mask_resized_notnormalized / 255.0
       coco_mask_resized = coco_mask_resized / float(np.sum(coco_mask_resized))
 
-    if image_id not in json_dict:        
+    #fig = plt.figure(frameon=False)
+    #plt.imshow(coco_mask_resized)
+    #plt.show()
+    #plt.close()
+
+    if image_id not in json_dict:
+      ipdb.set_trace() # ????????????????????????????????????????
       continue
+
     caption = json_dict[image_id]
+    #print('\tCOCO_val2014_%012d\t%s' % (image_id, caption))
     if caption[-1] == '.':
       caption = caption[0:-1]      
     tokens = caption.split(' ')
@@ -158,9 +160,10 @@ def main(_):
     encoded_tokens = [vocab.word_to_id(w) for w in tokens]
     man_ids = [i for i, c in enumerate(encoded_tokens) if c == man_id]
     woman_ids = [i for i, c in enumerate(encoded_tokens) if c == woman_id]
-    #person_ids = [i for i, c in enumerate(encoded_tokens) if c == person_id]
-    if not (man_ids or woman_ids): #or person_ids):
-      assert(False)
+    person_ids = [i for i, c in enumerate(encoded_tokens) if c == person_id]
+    if not (man_ids or woman_ids or person_ids):
+      # nothing to do
+      continue
     else:
       files = glob.glob(save_path + "/*COCO_val2014_" + "%012d*.npy" % (image_id))
       for f in files:
@@ -171,18 +174,15 @@ def main(_):
             exclude_file = True
             break
         if exclude_file: continue
-        saliency_mask = np.load(gradcam_file)
+        gradcam_mask = np.load(gradcam_file)
         if W > 0:
-          mask_grayscale_upscaled = prepare_resize_saliency(saliency_mask, W, H)
+          mask_grayscale_upscaled = prepare_resize_gradcam(gradcam_mask, W, H)
           mask_grayscale_upscaled = mask_grayscale_upscaled / float(np.sum(mask_grayscale_upscaled))
           met = metrics.heatmap_metrics(coco_mask_resized,
                               mask_grayscale_upscaled,
                               gt_type='human', SIZE=(W,H))
-          met_notnormalized = metrics.heatmap_metrics(coco_mask_resized_notnormalized,
-                              mask_grayscale_upscaled,
-                              gt_type='human', SIZE=(W,H))
         else:
-          mask_grayscale_upscaled = prepare_resize_saliency(saliency_mask, coco_mask.shape[0], coco_mask.shape[1])
+          mask_grayscale_upscaled = prepare_resize_gradcam(gradcam_mask, coco_mask.shape[0], coco_mask.shape[1])
           mask_grayscale_upscaled = mask_grayscale_upscaled / float(np.sum(mask_grayscale_upscaled))
           met = metrics.heatmap_metrics(coco_mask,
                               mask_grayscale_upscaled,
@@ -206,7 +206,7 @@ def main(_):
           iou_sum += mean_iou
         # pointing
         if W<0:
-          pointing_sum += met.pointing()#coco_mask.flatten()[np.argmax(mask_grayscale_upscaled.flatten())]
+          pointing_sum += met.pointing()#coco_mask.flatten()[np.argmax(mask_grayscale_upscaled)]
         global_count += 1
   print("\ncount: %d instances" % (global_count))
   #print("EMD: %.3f" % float(emd_sum/global_count))
@@ -219,3 +219,4 @@ def main(_):
 
 if __name__ == "__main__":
   tf.app.run()
+
