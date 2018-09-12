@@ -8,7 +8,7 @@ This repository contains everything necessary to replicate the results in our [2
 
 - Tensorflow v1.0 
 - NumPy v??
-- nltk, punkt (>> import nltk  >> nltk.download('punkt'))
+- nltk, punkt (nltk.download('punkt'))
 - pattern
 - unzip
 
@@ -18,7 +18,7 @@ Or see the [`requirements.txt`](??) file.
 
 To train the model you will need to provide training data in native TFRecord format. Code is available [here](im2txt/data/download_and_preprocess_mscoco.sh) and detailed [instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) about downloading and preprocessing the data are available in the original repo.
 
-We run our experiments on the "bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows:
+We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows:
 
 ```
 cd ./im2txt/data/
@@ -29,12 +29,11 @@ curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
 ```
 
-We also construct a "balanced split", where we randomly choose 500 images with women and 500 images with men from the "bias split". We include it under "./im2txt/data/balanced_split/".
-
+We also construct a ["Balanced split"](im2txt/data/balanced_split/), where we randomly choose 500 images with women and 500 images with men from the "Bias split".
 
 The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](scripts/SegmentationMasks.ipynb).
 
-Our experiments fine tune standard im2txt on the bias coco split. Please see the code for [storing data as tfrecord files](im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
+Our experiments fine tune standard im2txt on the COCO Bias split. Please see the code for [storing data as tfrecord files](im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
 
 In order to evaluation the GradCam/Saliency maps with the pointing game, we additionally save binary person masks. Please see the code [here](im2txt/save_coco_person_segmentations.py).
 
@@ -66,7 +65,7 @@ python im2txt/run_inference_with_gradcam.py   --checkpoint_path=${CHECKPOINT_PAT
 
 Note that CHECKPOINT_PATH, MODEL_NAME and JSON_PATH are model-specific, IMG_PATH is a file with a list of image IDs.
 
-We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we include under "./im2test/gradcam".
+We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we [include](im2text/gradcam) in our repository.
 
 ### Saliency maps
 Example commands to generate Saliency maps using ground-truth captions:
@@ -100,9 +99,8 @@ Other
 - [ ] print results for `table_2_supp` of the eccv results [script](im2txt/data_analysis/eccv_2018_results.py)
 - [ ] link to requirements.txt is broken
 - [ ] specify where pretrained models and captions should be extracted
-- [ ] Tab :2 does not have the Outcome Divergence
+- [ ] Tab 2 does not have the Outcome Divergence
 - [ ] "table_1_supp" does not work, as data/object_lists files are missing
-- [ ] minor: fix the order of models
 - [ ] add ./data/captions_only_valtrain2014.json or the code to get it
+- [ ] minor: fix the order of models
 
-- [ ] 
