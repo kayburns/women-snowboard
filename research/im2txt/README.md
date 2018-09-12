@@ -42,6 +42,8 @@ Training scripts are provided [here](im2txt/train_scripts/).
 
 ## Generating GradCam and Saliency maps
 
+Below we provide example commands for computing GradCam and Saliency maps for a given model (note CHECKPOINT_PATH, MODEL_NAME and JSON_PATH) and a given set of images (note IMG_PATH).
+
 ### GradCam maps
 Example commands for using ground-truth captions:
 ```
@@ -63,9 +65,7 @@ IMG_PATH="./data/balanced_split/test_woman.txt"
 python im2txt/run_inference_with_gradcam.py   --checkpoint_path=${CHECKPOINT_PATH}   --vocab_file=${VOCAB_FILE} --json_path=${JSON_PATH} --img_path=${IMG_PATH} --save_path=${SAVE_PATH}
 ```
 
-Note that CHECKPOINT_PATH, MODEL_NAME and JSON_PATH are model-specific, IMG_PATH is a file with a list of image IDs.
-
-We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we [include](im2text/gradcam) in our repository.
+We thank @PAIR-code for providing the GradCam [implementation](https://github.com/PAIR-code/saliency), which we [include](gradcam) in our repository.
 
 ### Saliency maps
 Example commands to generate Saliency maps using ground-truth captions:
