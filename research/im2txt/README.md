@@ -83,7 +83,6 @@ python im2txt/run_inference_with_saliency_with_gt.py   --checkpoint_path=${CHECK
 ## Running Analysis on Generated COCO Captions
 Any result from the paper can be recreated with [this](data_analysis/eccv_2018_results.py) script. You can generate all of the numbers from the tables and figures by running:
 ```
-export PYTHONPATH=<path on your machine>/caption-bias/research/im2txt/im2txt/:${PYTHONPATH}
 python data_analysis/eccv_2018_results.py --experiments all
 ```
 
