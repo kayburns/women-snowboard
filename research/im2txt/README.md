@@ -6,13 +6,13 @@ This repository contains everything necessary to replicate the results in our [2
 
 ### Install the required packages.
 
-- Tensorflow v1.0 
-- NumPy v??
+- Tensorflow v1.0 or greater
+- NumPy
 - nltk, punkt (nltk.download('punkt'))
 - pattern
 - unzip
 
-Or see the [`requirements.txt`](??) file.
+Or see the [`requirements.txt`](../../requirements.txt) file.
 
 ### Prepare the data.
 
