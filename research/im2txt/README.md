@@ -89,9 +89,10 @@ python data_analysis/eccv_2018_results.py --experiments all
 ## TODO
 Anja
 - [+] code to run GradCam/Saliency
-- [ ] print results when `table_3_main` of the eccv results [script](data_analysis/eccv_2018_results.py)
+- [+] print results when `table_3_main` of the eccv results [script](data_analysis/eccv_2018_results.py)
 - [+] include the balanced_split
-- [ ] make coco location an argument
+- [ ] table 3: handle absent data
+- [ ] make coco location an input
 
 Lisa
 - [ ] add training scripts for balanced and upweight baselines to training scripts folder
@@ -106,4 +107,6 @@ Other
 - [ ] add ./data/captions_only_valtrain2014.json or the code to get it
 - [ ] minor: fix the order of models
 - [ ] fix the absolute paths
+- [ ] replace the confusion.json with teh correct file
+- [ ] rename provided model "confidence" to be "confident"
 
