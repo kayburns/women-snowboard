@@ -20,14 +20,15 @@ uw = ('UpWeight', base_dir + 'upweight.json')
 caption_paths.append(uw)
 balanced = ('Balanced', base_dir + 'balanced.json')
 caption_paths.append(balanced)
-confident =  ('Equalizer w/o ACL', base_dir + 'confident.json')
+#confident =  ('Equalizer w/o ACL', base_dir + 'confident.json')
+confident =  ('Equalizer w/o ACL', base_dir + 'confidence.json') # !!!!!!!!!!!!!!!!!!!
 caption_paths.append(confident)
 acl = ('Equalizer w/o Confident', base_dir + 'confusion.json')
 caption_paths.append(acl) 
 equalizer = ('Equalizer', base_dir + 'equalizer.json')
 caption_paths.append(equalizer)
 
-# Crete analysis tools
+# Create analysis tools
 analysis_computer = AnalysisBaseClass(caption_paths)
 
 # Get dataset splits; shopping refers to 'Men Also Like Shopping'
@@ -54,6 +55,18 @@ datasets = [
     ('COCO Balanced (Val)',balanced_dev),
     ('COCO Balanced (Test)',balanced_test)
 ]
+
+# For pointing
+datasets_pointing = [    
+    ('COCO Balanced (Val)', ['./data/balanced_split/val_woman.txt', './data/balanced_split/val_man.txt']),
+    ('COCO Balanced (Test)', ['./data/balanced_split/test_woman.txt', './data/balanced_split/test_man.txt'])
+]
+
+vocab_file = './data/word_counts.txt'
+save_path_gradcam = './results_gradcam_%s_gt/' # %s -- val test 
+# save_path_gradcam = './results_gradcam_%s_pred/' # %s -- val test
+save_path_saliency = './results_saliency_%s_gt/' # %s -- val test
+checkpoint_path = "./final_weights_eccv2018/%s/train/model.ckpt-1500000" # %s -- model name
 
 # ------------------------- Helpers to Run Experiments ----------------------- #
 
@@ -87,9 +100,38 @@ def table_2_main():
             print("{0:.2f}".format(model_results['male_other']*100))
 
 def table_3_main():
-    for split_name, id_list in datasets:
+    print('=============== Grad-Cam ')
+    for split_name, img_paths in datasets_pointing:
         print('---------------------- %s ----------------------' % split_name)
-        print("TODO")
+        img_path_w = img_paths[0]
+        img_path_m = img_paths[1]
+        if 'val' in img_path_w: save_path = save_path_gradcam % 'val'
+        elif 'test' in img_path_w: save_path = save_path_gradcam % 'test'
+        else: assert(False)
+        all_results = analysis_computer.pointing(img_path_w, img_path_m, vocab_file, save_path, checkpoint_path, 'gradcam')
+        print('Model\tWoman\tMan\tAll')
+        for model, model_results in all_results.iteritems():
+            print(model, end='\t')
+            print("{0:.2f}".format(model_results['woman']*100),end='\t')
+            print("{0:.2f}".format(model_results['man']*100),end='\t')
+            print("{0:.2f}".format(model_results['all']*100))
+
+    print('=============== Saliency ')
+    for split_name, img_paths in datasets_pointing:
+        print('---------------------- %s ----------------------' % split_name)
+        img_path_w = img_paths[0]
+        img_path_m = img_paths[1]
+        if 'val' in img_path_w: save_path = save_path_saliency % 'val'
+        elif 'test' in img_path_w: save_path = save_path_saliency % 'test'
+        else: assert(False)
+        all_results = analysis_computer.pointing(img_path_w, img_path_m, vocab_file, save_path, checkpoint_path, 'saliency')
+        print('Model\tWoman\tMan\tAll')
+        for model, model_results in all_results.iteritems():
+            print(model, end='\t')
+            print("{0:.2f}".format(model_results['woman']*100),end='\t')
+            print("{0:.2f}".format(model_results['man']*100),end='\t')
+            print("{0:.2f}".format(model_results['all']*100))
+    
 
 def figure_3_main():
     for split_name, id_list in datasets:
@@ -116,11 +158,11 @@ def table_2_supp():
 
 experiment_functions = OrderedDict([
     ('table_1_main',table_1_main),
-    #('table_2_main',table_2_main),
-    #('table_3_main',table_3_main),
-    #('figure_3_main',figure_3_main),
-    #('table_1_supp',table_1_supp),
-    #('table_2_supp',table_2_supp)
+    ('table_2_main',table_2_main),
+    ('table_3_main',table_3_main),
+    ('figure_3_main',figure_3_main),
+    ('table_1_supp',table_1_supp),
+    ('table_2_supp',table_2_supp)
 ])
 experiment_names = experiment_functions.keys()
 

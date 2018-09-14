@@ -71,7 +71,6 @@ class AnalysisBaseClass:
         self.img_2_anno_dict = img_2_anno_dict
         self.img_2_anno_dict_simple = img_2_anno_dict_simple
 
-    #import ipdb; ipdb.set_trace()
     gt_path = './data/captions_only_valtrain2014.json'
     gt_caps_list = json.load(open(gt_path))['annotations']
     gt_caps = collections.defaultdict(list)
@@ -127,6 +126,39 @@ class AnalysisBaseClass:
                         filter_imgs=filter_imgs
                     )
                 )
+            all_results[caption_path[0]] = model_results
+        return all_results
+
+
+    def pointing(self, img_path_w, img_path_m, vocab_file, save_path, checkpoint_path, map_type):
+        """
+        Returns a dictionary mapping model name to result dictionary. For each
+        model, computes pointing accuracy for women, men and overall. 
+        map_type can be 'gradcam' or 'saliency'.
+        """
+        all_results = {}
+        #import ipdb; ipdb.set_trace()
+        for caption_path in self.caption_paths:
+            model_name = os.path.basename(caption_path[1]).split('.')[0]            
+            model_results = {}
+            if map_type == 'gradcam':
+                from evaluate_gradcam_with_gt import evaluate
+                count_w, pointing_acc_w = evaluate(checkpoint_path % model_name, vocab_file, model_name, img_path_w, save_path)
+                count_m, pointing_acc_m = evaluate(checkpoint_path % model_name, vocab_file, model_name, img_path_m, save_path)                
+                #from evaluate_gradcam import evaluate
+                #count_w, pointing_acc_w = evaluate(checkpoint_path % model_name, vocab_file, caption_path[1], img_path_w, save_path)
+                #count_m, pointing_acc_m = evaluate(checkpoint_path % model_name, vocab_file, caption_path[1], img_path_m, save_path)         
+            elif map_type == 'saliency':
+                from evaluate_saliency_with_gt import evaluate
+                count_w, pointing_acc_w = evaluate(checkpoint_path % model_name, vocab_file, model_name, img_path_w, save_path)
+                count_m, pointing_acc_m = evaluate(checkpoint_path % model_name, vocab_file, model_name, img_path_m, save_path)
+                model_results = {}
+            else: assert(False)
+
+            model_results['woman'] = pointing_acc_w
+            model_results['man'] = pointing_acc_m
+            model_results['all'] = (count_w*pointing_acc_w+count_m*pointing_acc_m)/(count_w+count_m)
+
             all_results[caption_path[0]] = model_results
         return all_results
 
