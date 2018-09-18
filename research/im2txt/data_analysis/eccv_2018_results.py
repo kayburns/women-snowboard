@@ -152,9 +152,27 @@ def table_1_supp():
         )
 
 def table_2_supp():
-   for split_name, id_list in datasets:
-       print('---------------------- %s ----------------------' % split_name)
-       print("TODO")
+    # Get caption results
+    caption_paths = []
+    base_dir = './final_captions_eccv2018/'
+    baseline_ft = ('Baseline-FT', base_dir + 'baseline_ft.json')
+    caption_paths.append(baseline_ft)
+    equalizer = ('Equalizer', base_dir + 'equalizer.json')
+    caption_paths.append(equalizer)
+    equalizer_w_sets = ('Equalizer w/ Sets', base_dir + 'equalizer_w_sets.json')
+    caption_paths.append(equalizer_w_sets)
+    # Create analysis tools
+    analysis_computer = AnalysisBaseClass(caption_paths)
+    for split_name, id_list in datasets:
+        print('---------------------- %s ----------------------' % split_name)
+        all_results = analysis_computer.accuracy(id_list)
+        print('Model\tError\tRatio Difference')
+        for model, model_results in all_results.iteritems():
+            print(model, end='\t')
+            print("{0:.2f}".format(model_results['all_incorrect']*100),end='\t')
+            print("{0:.2f}".format(
+                model_results['gt_ratio']-model_results['ratio']
+            ))
 
 experiment_functions = OrderedDict([
     ('table_1_main',table_1_main),
