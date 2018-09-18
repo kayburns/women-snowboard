@@ -23,7 +23,7 @@ To train the model you will need to provide training data in native TFRecord for
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows:
 
 ```
-cd ./im2txt/data/
+cd ./data/
 mkdir bias_splits
 cd bias_splits/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/dev.data
@@ -94,19 +94,15 @@ Anja
 - [ ] table 3: handle absent data
 - [ ] make coco location an input
 
-Lisa
-- [ ] add training scripts for balanced and upweight baselines to training scripts folder
-- [ ] Code to create blocked images
-
 Other
-- [ x ] print results for `table_2_supp` of the eccv results [script](data_analysis/eccv_2018_results.py)
-- [ x ] link to requirements.txt is broken
-- [ x ] specify where pretrained models and captions should be extracted
+- [x] print results for `table_2_supp` of the eccv results [script](data_analysis/eccv_2018_results.py)
+- [x] link to requirements.txt is broken
+- [x] specify where pretrained models and captions should be extracted
 - [ ] Tab 2 does not have the Outcome Divergence
-- [ ] "table_1_supp" does not work, as data/object_lists files are missing
+- [x] "table_1_supp" does not work, as data/object_lists files are missing (note from kaylee: should be in data download instructions?)
 - [ ] add ./data/captions_only_valtrain2014.json or the code to get it
 - [ ] minor: fix the order of models
 - [ ] fix the absolute paths
-- [ ] replace the confusion.json with teh correct file
-- [ x ] rename provided model "confidence" to be "confident"
+- [ ] replace the confusion.json with the correct file
+- [x] rename provided model "confidence" to be "confident"
 
