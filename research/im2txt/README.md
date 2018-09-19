@@ -22,7 +22,7 @@ The Appearance Confusion Loss requires masked images. To create masks, please se
 Our experiments fine tune standard im2txt on the bias coco split. Please see the code for [storing data as tfrecord files](im2txt/data/build_scripts/build_mscoco_blocked_data.py). The link provided also loads blocked images into the tfrecords, so you will need to specify the location of the blocked images.
 
 ## Training Models
-Training scripts are provided [here](im2txt/train_scripts).
+Training scripts are provided [here](train_scripts).
 
 ## Running Analysis on Generated COCO Captions
 Any result from the paper can be recreated with [this](data_analysis/eccv_results_2018.py) script. You can generate all of the numbers from the tables and figures by running:
