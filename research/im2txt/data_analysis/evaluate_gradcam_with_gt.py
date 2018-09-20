@@ -12,7 +12,9 @@ import os.path as osp
 import scipy
 import numpy as np
 import argparse
-
+sys.path.append('./')
+print(sys.path)
+print(os.getcwd())
 from im2txt import metrics
 
 def prepare_resize_gradcam(grad_mask_2d, w, h):
@@ -37,7 +39,7 @@ def evaluate(checkpoint_path, vocab_file, model_name, img_path, save_path):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path = 'im2txt/data/mscoco/annotations/captions_val2014.json'
+  json_path = 'data/mscoco/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:

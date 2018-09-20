@@ -137,7 +137,6 @@ class AnalysisBaseClass:
         map_type can be 'gradcam' or 'saliency'.
         """
         all_results = {}
-        #import ipdb; ipdb.set_trace()
         for caption_path in self.caption_paths:
             model_name = os.path.basename(caption_path[1]).split('.')[0]            
             model_results = {}
