@@ -18,7 +18,7 @@ Or see the [`requirements.txt`](../../requirements.txt) file.
 
 To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both under "caption-bias/research/im2txt/".
 
-To train the model you will need to provide training data in native TFRecord format. Code is available [here](im2txt/data/download_and_preprocess_mscoco.sh) and detailed [instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) about downloading and preprocessing the data are available in the original repo.
+We expect mscoco in the directory `caption-bias/research/im2txt/data/mscoco`. To train the model you will need to provide training data in native TFRecord format. Code is available [here](im2txt/data/download_and_preprocess_mscoco.sh) and detailed [instructions](https://github.com/tensorflow/models/tree/master/research/im2txt#prepare-the-training-data) about downloading and preprocessing the data are available in the original repo.
 
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows (note: this is the data folder in the higher level im2txt directory):
 
@@ -87,22 +87,5 @@ python data_analysis/eccv_2018_results.py --experiments all
 ```
 
 ## TODO
-Anja
-- [+] code to run GradCam/Saliency
-- [+] print results when `table_3_main` of the eccv results [script](data_analysis/eccv_2018_results.py)
-- [+] include the balanced_split
-- [ ] table 3: handle absent data
-- [ ] make coco location an input
-
-Other
-- [x] print results for `table_2_supp` of the eccv results [script](data_analysis/eccv_2018_results.py)
-- [x] link to requirements.txt is broken
-- [x] specify where pretrained models and captions should be extracted
-- [ ] Tab 2 does not have the Outcome Divergence
-- [x] "table_1_supp" does not work, as data/object_lists files are missing (note from kaylee: should be in data download instructions?)
-- [ ] add ./data/captions_only_valtrain2014.json or the code to get it
-- [ ] minor: fix the order of models
-- [ ] fix the absolute paths
-- [ ] replace the confusion.json with the correct file
-- [x] rename provided model "confidence" to be "confident"
+https://docs.google.com/spreadsheets/d/1x1CYyvOO0WOcV2ksqZL3O5VxXkw2ns8MxY7aURjS7Oc/edit#gid=333766892
 
