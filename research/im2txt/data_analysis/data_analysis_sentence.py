@@ -4,7 +4,6 @@ from data_analysis_common import *
 import nltk
 import pdb
 from bias_detection import *
-sys.path.append('/data1/caption_bias/models/research/im2txt/coco-caption/')
 from pycocotools.coco import COCO
 from pycocoevalcap.eval import COCOEvalCap
 import os
@@ -12,11 +11,7 @@ from data_analysis_base import AnalysisBaseClass, caption_paths
                                                                                 
 analysis_computer = AnalysisBaseClass(caption_paths)
 
-#base_dir = '/home/lisaanne/lev/'
-base_dir = ''
-#create person set gt
-
-gt_path = base_dir + '/data1/caption_bias/models/research/im2txt/coco-caption/annotations/captions_val2014.json'
+gt_path = 'data/captions_val2014.json'
 
 gt_path_person = gt_path.replace('.json', '.person.json')
 
@@ -75,7 +70,7 @@ pdb.set_trace()
 
 shopping_dev_split = analysis_computer.get_shopping_split()
 shopping_dev_split_ids = analysis_computer.convert_filenames_to_ids(shopping_dev_split)
-shopping_test_split = analysis_computer.get_shopping_split(fpath='/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/test.data')
+shopping_test_split = analysis_computer.get_shopping_split(fpath='data/bias_splits/test.data')
 shopping_test_split_ids = analysis_computer.convert_filenames_to_ids(shopping_test_split)
 image_set = set(shopping_test_split_ids)
 ###############################
