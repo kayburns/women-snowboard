@@ -502,7 +502,7 @@ def main(unused_argv):
 
   val_cutoff = int(0.5 * len(mscoco_val_dataset))
   train_dataset = mscoco_train_dataset
-  val_dataset = mscoco_val_dataset[:val_cutoff]
+  val_dataset = mscoco_val_dataset[:val_cutoff] # acutal split is handled in analysis files
   test_dataset = mscoco_val_dataset[val_cutoff:]
 
   # Create vocabulary from the training captions.
