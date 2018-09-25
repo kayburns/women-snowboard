@@ -1,3 +1,7 @@
+'''
+Gets sentence metric over MSCOCO test set and biased set.
+'''
+from IPython import embed
 import sys
 import json
 from data_analysis_common import *
@@ -7,31 +11,10 @@ from bias_detection import *
 from pycocotools.coco import COCO
 from pycocoevalcap.eval import COCOEvalCap
 import os
-from data_analysis_base import AnalysisBaseClass, caption_paths                 
-                                                                                
-analysis_computer = AnalysisBaseClass(caption_paths)
+from data_analysis_base import AnalysisBaseClass, caption_paths
 
-gt_path = 'data/captions_val2014.json'
-
-gt_path_person = gt_path.replace('.json', '.person.json')
-
-gendered_words = set(man_word_list_synonyms + woman_word_list_synonyms)
-
-if not os.path.exists(gt_path_person):
-    gt_caps = json.load(open(gt_path))
-    annotations = gt_caps['annotations']
-    for cap in annotations:
-        words = nltk.word_tokenize(cap['caption'].lower())
-        words = ['person' if word in gendered_words else word for word in words] 
-        cap['caption'] = ' '.join(words)
-    gt_caps['annotations'] = annotations 
-    with open(gt_path_person, 'w') as outfile:
-        json.dump(gt_caps, outfile)
-
-coco = COCO(gt_path_person)
-
-
-target_set = 'biased' #options are biased, balanced, confident
+gt_path = 'data/mscoco/captions_val2014.json'
+coco = COCO(gt_path)
 
 img_2_anno_dict = create_dict_from_list(pickle.load(open(target_train)))
 img_2_anno_dict.update(create_dict_from_list(pickle.load(open(target_test))))
@@ -46,60 +29,48 @@ for key, value in img_2_anno_dict.iteritems():
     assert int(not value[0]) == value[1]
 bias_ids = img_2_anno_dict_simple.keys()
 
-if target_set == 'biased': 
-    image_set = bias_ids
-elif target_set == 'balanced':
-    confident_man = open(base_dir + '/home/lisaanne/lev/data2/caption-bias/dataset-splits/val-confident-man.txt').readlines()       
-    confident_man = [int(c.strip()) for c in confident_man]
-    confident_woman = open(base_dir + '/home/lisaanne/lev/data2/caption-bias/dataset-splits/val-confident-woman.txt').readlines()       
-    confident_woman = [int(c.strip()) for c in confident_woman]
-    confident_ims = set(confident_man + confident_woman) & set(bias_ids)
-    image_set = confident_ims
-elif target_set == 'confident':    
-    confident_man = open(base_dir + '/data2/anja/xai/captions/val-confident-man-500new.txt').readlines()
-    confident_man = [int(c.strip()) for c in confident_man]
-    confident_woman = open(base_dir + '/data2/anja/xai/captions/val-confident-woman-500new.txt').readlines()
-    confident_woman = [int(c.strip()) for c in confident_woman]
-    confident_ims = set(confident_man + confident_woman) & set(bias_ids)
-    image_set = confident_ims
-else: 
-    print "Invalid set specified"   
-###############################
-pdb.set_trace()
-# overriding target set
-
-shopping_dev_split = analysis_computer.get_shopping_split()
-shopping_dev_split_ids = analysis_computer.convert_filenames_to_ids(shopping_dev_split)
-shopping_test_split = analysis_computer.get_shopping_split(fpath='data/bias_splits/test.data')
-shopping_test_split_ids = analysis_computer.convert_filenames_to_ids(shopping_test_split)
-image_set = set(shopping_test_split_ids)
-###############################
-
 for caption_path in caption_paths:
+    print "Model name: %s" %caption_path[0]
 
+    print "##############Sentence metrics over MSCOCO Set:#######################"
+    predicted_captions = json.load(open(caption_path[1]))
+    
     generation_coco = coco.loadRes(caption_path[1])
     coco_evaluator = COCOEvalCap(coco, generation_coco)
-    coco_evaluator.params['image_id'] = list(set(image_set) & set(generation_coco.getImgIds())) 
-    coco_evaluator.evaluate()
+    # coco_evaluator.evaluate()
 
-    predicted_caps = json.load(open(caption_path[1]))
-
-    for cap in predicted_caps:
-        words = nltk.word_tokenize(cap['caption'].lower())
-        words = ['person' if word in gendered_words else word for word in words] 
-        cap['caption'] = ' '.join(words)
-        if len(set(words) & gendered_words) > 0: pdb.set_trace()
+    print "##############Sentence metrics over Biased Set:#######################"
     
-    """
-    person_caps = 'tmp/person_caps.json'
-    with open(person_caps, 'w') as outfile:
-        json.dump(predicted_caps, outfile)
-    generation_coco = coco.loadRes(person_caps)
+    
+    #Sentence metrics over biased captions
+    bias_captions = []
+    for caption in predicted_captions:
+        if caption['image_id'] in bias_ids:
+            bias_captions.append(caption)
+            
+    bias_save_file = caption_path[1].replace('.json', '_bias.json')
+    if not os.path.exists(bias_save_file):
+    
+        with open(bias_save_file, 'w') as outfile:
+            json.dump(bias_captions, outfile)
+    
+    generation_coco = coco.loadRes(bias_save_file)
     coco_evaluator = COCOEvalCap(coco, generation_coco)
-    coco_evaluator.params['image_id'] = list(set(image_set) & set(generation_coco.getImgIds()))
+    
+    # evaluate on a subset of images by setting
+    # cocoEval.params['image_id'] = cocoRes.getImgIds()
+    # please remove this line when evaluating the full validation set
+    coco_evaluator.params['image_id'] = generation_coco.getImgIds()
+    embed()
     coco_evaluator.evaluate()
-    """
-    print "Model name: %s" %caption_path[0]
-    pdb.set_trace() 
 
+    print "Model name: %s" %caption_path[0]
+    print "##############Sentence metrics over Shopping Test:#######################"
+    # evaluate on a subset of images by setting
+    # cocoEval.params['image_id'] = cocoRes.getImgIds()
+    # please remove this line when evaluating the full validation set
+    shopping_test_split = AnalysisBaseClass.get_shopping_split()
+    coco_evaluator.params['image_id'] = AnalysisBaseClass.convert_filenames_to_ids(shopping_test_split)
+    coco_evaluator.evaluate()
+    
 
