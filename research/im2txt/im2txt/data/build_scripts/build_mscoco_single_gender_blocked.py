@@ -133,6 +133,9 @@ tf.flags.DEFINE_integer("min_word_count", 4,
 tf.flags.DEFINE_string("word_counts_output_file", "/tmp/word_counts.txt",
                        "Output vocabulary file of word counts.")
 
+tf.flags.DEFINE_string("gender", ".",
+                       "Gender of tfrecord file to create.")
+
 tf.flags.DEFINE_integer("num_threads", 8,
                         "Number of threads to preprocess the images.")
 
@@ -227,9 +230,9 @@ def img_name_to_img_id(img_name):
 def get_mode(filename):
     return filename.split('.')[0].split('_')[1]
 
-def get_female_image_names_and_counts(mode):
+def get_gendered_image_names_and_counts(mode, gender):
     """
-    Returns list of file names of images with women.
+    Returns list of file names of images with a single_gender.
 
     Reads in data files structured as follows:
     [{'annotation': [1, 0, ...], 
@@ -238,6 +241,17 @@ def get_female_image_names_and_counts(mode):
     The first value of the annotation list is
     1 if male, 0 if female.
     """
+    gender_n = -1
+    if gender == "woman":
+        gender_n = 0
+    elif gender == "man":
+        gender_n = 1
+    else:
+        raise ValueError(
+            "The provided argument for gender is not supported at this time." \
+            "Please pick from the following gender presentations:" \
+            "'man', 'woman'"
+        )
     wimages = []
     files = []
     filepath = '../bias_splits/'
@@ -253,7 +267,7 @@ def get_female_image_names_and_counts(mode):
       samples = pickle.load(open(filename))
       for sample in samples:
         image_filename = sample['img']
-        if not sample['annotation'][0]:
+        if sample['annotation'][0] == gender_n:
           wimages.append(image_filename)
 
     return wimages
@@ -508,7 +522,7 @@ def _load_and_process_metadata(captions_file, image_dir):
   image_metadata = []
   num_captions = 0
   mode = get_mode(id_to_filename[0][1])
-  gender_images = get_female_image_names_and_counts(mode)
+  gender_images = get_gendered_image_names_and_counts(mode, FLAGS.gender)
   for image_id, base_filename in id_to_filename:
     if base_filename in gender_images:
       filename = os.path.join(image_dir, base_filename)
