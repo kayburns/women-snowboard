@@ -18,7 +18,8 @@ Or see the [`requirements.txt`](../../requirements.txt) file.
 
 #### Download the Data
 
-Our datasets are build off the [MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `caption-bias/research/im2txt/data/mscoco`.
+Our datasets are build off the [
+dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `caption-bias/research/im2txt/data/mscoco`.
 
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows (note: this is the data folder in the higher level im2txt directory):
 
@@ -76,6 +77,17 @@ For gender = "man" or "woman".
 
 ## Training Models
 Training scripts are provided [here](train_scripts/).  
+
+
+## Generating sentences.
+Run the following from `women-snowboard/research/im2txt`.
+```
+python im2txt/run_inference.py \
+  --checkpoint_path=${CHECKPOINT_PATH} \
+  --vocab_file='./data/word_counts.txt' \
+  --input_files='./data/mscoco/${SPLIT}/COCO_${SPLIT}_*.jpg'
+  --dump_file='${DUMP_FILE}.json'
+```
 
 
 ## Generating GradCam and Saliency maps
