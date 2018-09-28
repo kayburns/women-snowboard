@@ -21,7 +21,6 @@ from __future__ import print_function
 import heapq
 import math
 
-from img_captioning_baseline import consensus_nn
 import numpy as np
 import os.path
 
@@ -137,30 +136,6 @@ class CaptionGenerator(object):
     self.beam_size = beam_size
     self.max_caption_length = max_caption_length
     self.length_normalization_factor = length_normalization_factor
-
-  def consensus_NN(self, sess, encoded_image, caption_path, train_data_dir='', NN_pickle_file=None):
-    """Runs consensus NN caption generation on a single image.
-
-    Args:
-      sess: TensorFlow Session object.
-      encoded_image: An encoded image string.
-      NN_pickle_file: filename of pickled NN. if filename does
-        not exist, fits model and pickles to filename.
-
-    Returns:
-      A list of Caption sorted by descending score.
-    """
-    cNN = consensus_nn.ConsensusNearestNeighbors()
-
-    if not os.path.exists(NN_pickle_file):
-      cNN.process_training_set(NN_pickle_file, train_data_dir, self.model, sess)
-    else:
-      cNN.load_model(NN_pickle_file) 
-    # Feed in the image to get the initial state.
-    initial_state = self.model.feed_image(sess, encoded_image)
-    
-    # Get consensus caption
-    return cNN.generate_captions([np.reshape(initial_state, -1)], caption_path)
 
   def beam_search(self, sess, encoded_image):
     """Runs beam search caption generation on a single image.
