@@ -34,6 +34,7 @@ import PIL.Image
 from matplotlib import pylab as P
 import pickle
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import matplotlib.colors as mcolors
 import os
 import os.path as osp

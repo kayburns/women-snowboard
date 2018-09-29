@@ -73,7 +73,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path='./im2txt/data/mscoco/annotations/captions_val2014.json'
+  json_path='./data/mscoco/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
@@ -106,7 +106,7 @@ def main(_):
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      original_filename = './im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+      original_filename = './data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
       mask_dir = '%s/%s/' %(mask_dir_base, image_id)
       if not os.path.exists(mask_dir):

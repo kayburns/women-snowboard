@@ -20,7 +20,7 @@ def prepare_resize_saliency(saliency_mask, w, h):
   # Anja: I know that scipy.misc.imresize is depricated but skimage.transform.resize gives a different result :(
   return saliency_mask_upscaled
 
-coco_dir = 'im2txt/data/mscoco/'# Anja: TODO fix coco
+coco_dir = '../im2txt/data/mscoco/'# Anja: TODO fix coco
 dataType = 'val2014'
 cocoImgDir = '{}/images/{}/'.format(coco_dir, dataType)
 coco_masks = '{}/masks/{}/'.format(coco_dir, dataType)
@@ -33,7 +33,7 @@ def evaluate(checkpoint_path, vocab_file, model_name, img_path, save_path):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path = 'im2txt/data/mscoco/annotations/captions_val2014.json'
+  json_path = '../im2txt/data/mscoco/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:

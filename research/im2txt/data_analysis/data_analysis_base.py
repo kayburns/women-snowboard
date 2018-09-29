@@ -4,6 +4,7 @@ import json, pickle, collections
 import nltk
 from pattern.en import singularize
 import numpy as np
+from collections import OrderedDict
 
 class AnalysisBaseClass:
 
@@ -77,13 +78,36 @@ class AnalysisBaseClass:
     for cap in gt_caps_list:
         gt_caps[int(cap['image_id'])].append(cap['caption'])
 
+    def outcome_divergence(self, results):
+
+        """
+        Returns dict results with field for outcome_divergence added.
+        """
+
+        woman_probs = np.array([results['female_correct'],
+                               results['female_incorrect'],
+                               results['female_other']])
+        man_probs = np.array([results['male_correct'],
+                             results['male_incorrect'],
+                             results['male_other']])
+        m = 0.5*woman_probs + 0.5*man_probs
+
+        def kl(q, p):
+
+            return np.sum(q*(np.log(q/p) / np.log(2)))
+
+        outcome_divergence = 0.5*kl(woman_probs, m) + 0.5*kl(man_probs, m)
+
+        results['outcome_divergence'] = outcome_divergence
+        return results
+
     def accuracy(self, filter_imgs=None):
         """
         Returns a dictionary mapping model name to result dictionary. For each
         model, computes accuracy breakdown per class and across classes. Also
         computes the ratio of man to woman.
         """
-        all_results = {}
+        all_results = OrderedDict() 
         for caption_path in self.caption_paths:
             predictions = json.load(open(caption_path[1]))
             model_results, _ = AnalysisBaseClass.accuracy_per_model(
@@ -93,7 +117,9 @@ class AnalysisBaseClass:
                 filter_imgs,
                 self.img_2_anno_dict_simple
             )
+            model_results = self.outcome_divergence(model_results)
             all_results[caption_path[0]] = model_results
+           
         return all_results
    
     def retrieve_accuracy_with_confidence(self, filter_imgs=None):
@@ -196,9 +222,9 @@ class AnalysisBaseClass:
                 other_count += 1  
 
         ratio = woman_count/(man_count + 1e-5)
-        print "Man count\tWoman count\tOther count\tWoman:Man ratio"
-        print "%d\t%d\t%d\t%0.05f" %(man_count, woman_count, 
-                                    other_count, ratio)
+        #print "Man count\tWoman count\tOther count\tWoman:Man ratio"
+        #print "%d\t%d\t%d\t%0.05f" %(man_count, woman_count, 
+        #                            other_count, ratio)
 
         return man_count, woman_count, other_count, ratio 
 
@@ -488,15 +514,15 @@ class AnalysisBaseClass:
 
         for bias_word in bias_words:
 
-            print "Bias word is: %s" %bias_word
-            anno_ids = open('../data/object_lists/intersection_%s_person.txt' %bias_word).readlines()
+#            print "Bias word is: %s" %bias_word
+            anno_ids = open('data/object_lists/intersection_%s_person.txt' %bias_word).readlines()
             anno_ids = [int(anno_id) for anno_id in anno_ids]
 
             #TODO: get numbers for GT
 
             gt_filtered = [item for item in gt \
                                if item['image_id'] in (set(filter_imgs) & set(anno_ids))]
-            print "Model: GT"
+#            print "Model: GT"
             gender_dict = self.img_2_anno_dict_simple
             gt_man = sum([1. for item in gt_filtered if \
                           gender_dict[item['image_id']]['male'] == 1])
@@ -504,8 +530,9 @@ class AnalysisBaseClass:
                           gender_dict[item['image_id']]['female'] == 1])
             gt_ratio = gt_woman/gt_man
 
+            biased_object_results = {}
+
             for caption_path in caption_paths_local:
-                print "Model: %s" %caption_path[0]
                 predictions = json.load(open(caption_path[1]))
                 captions = [item for item in predictions \
                             if item['image_id'] in set(filter_imgs) & set(anno_ids)]
@@ -513,12 +540,14 @@ class AnalysisBaseClass:
                           AnalysisBaseClass.get_gender_count(captions, 
                                             AnalysisBaseClass.man_word_list_synonyms, 
                                             AnalysisBaseClass.woman_word_list_synonyms)
-                print "Delta ratio: %0.04f" %(np.abs(ratio-gt_ratio)) 
 
                 error = AnalysisBaseClass.get_error(captions, gender_dict,
                                             AnalysisBaseClass.man_word_list_synonyms, 
                                             AnalysisBaseClass.woman_word_list_synonyms)
-                print "Error: %0.04f" %error 
+                biased_object_results[caption_path[0]] = {}
+                biased_object_results[caption_path[0]]['error'] = error
+                biased_object_results[caption_path[0]]['delta_ratio'] = ratio
+        return biased_object_results
 
     @staticmethod
     def bias_amplification_objects(predictions):
