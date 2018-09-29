@@ -59,7 +59,7 @@ def save_person_segmentations(coco, cocoImgDir, coco_masks, img_path):
     print('done')
 
 if __name__ == "__main__":
-    coco_dir = 'im2txt/data/mscoco/' # Anja: make it an argument
+    coco_dir = 'data/mscoco/'
 
     sys.path.append(coco_dir + '/PythonAPI')
     from pycocotools.coco import COCO

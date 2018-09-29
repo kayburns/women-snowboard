@@ -40,6 +40,8 @@ from im2txt.inference_utils import vocabulary
 sys.path.append('scripts/')
 from mask_utils import generate_image_masks
 
+coco_dir = 'data/mscoco/'
+
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string("checkpoint_path", "", "Model checkpoint file.")
@@ -73,7 +75,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path='./data/mscoco/annotations/captions_val2014.json'
+  json_path = coco_dir + '/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
@@ -106,7 +108,7 @@ def main(_):
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      original_filename = './data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+      original_filename = coco_dir + '/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       # create masks
       mask_dir = '%s/%s/' %(mask_dir_base, image_id)
       if not os.path.exists(mask_dir):

@@ -1,4 +1,4 @@
-# Anja: TODO
+# Compute GradCam with predicted captions as input
 
 from __future__ import absolute_import
 from __future__ import division
@@ -25,7 +25,7 @@ def prepare_resize_gradcam(grad_mask_2d, w, h):
   mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
   return mask_grayscale_upscaled
 
-coco_dir = 'im2txt/data/mscoco/'# Anja: TODO fix coco
+coco_dir = 'data/mscoco/'
 dataType = 'val2014'
 cocoImgDir = '{}/images/{}/'.format(coco_dir, dataType)
 coco_masks = '{}/masks/{}/'.format(coco_dir, dataType)
@@ -53,7 +53,7 @@ def evaluate(checkpoint_path, vocab_file, json_path, img_path, save_path):
   for i, image_id in enumerate(image_ids):
     image_id = int(image_id)
     #sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-    filename = 'im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+    filename = coco_dir + '/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
 
     coco_mask_file = '%s/COCO_%s_%012d.npy' %(coco_masks, dataType, image_id)
     coco_mask = np.load(coco_mask_file)
@@ -63,7 +63,7 @@ def evaluate(checkpoint_path, vocab_file, json_path, img_path, save_path):
       continue
 
     if image_id not in json_dict:
-      ipdb.set_trace() # Anja: necessary ???
+      ipdb.set_trace()
       continue
 
     caption = json_dict[image_id]
@@ -87,8 +87,7 @@ def evaluate(checkpoint_path, vocab_file, json_path, img_path, save_path):
         met = metrics.heatmap_metrics(coco_mask, mask_grayscale_upscaled, gt_type='human', SIZE=coco_mask.shape)
         pointing_sum += met.pointing()
         global_count += 1
-  #print("\ncount: %d instances" % (global_count))
-  #print("pointing: %.3f" % float(pointing_sum/global_count))
+
   return (global_count, float(pointing_sum/global_count))
 
 def parse_args():

@@ -33,6 +33,8 @@ from im2txt import configuration
 from im2txt import gradcam_wrapper
 from im2txt.inference_utils import vocabulary
 
+coco_dir = 'data/mscoco/'
+
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string("checkpoint_path", "", "Model checkpoint file.")
@@ -83,10 +85,10 @@ def main(_):
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      filename = 'im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg' # Anja: expect mscoco here 
+      filename = coco_dir + '/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg' 
       with tf.gfile.GFile(filename, "r") as f:
         image = f.read()
-      if image_id not in json_dict: # Anja: unnecessary ?
+      if image_id not in json_dict:
         assert(False)
       caption = json_dict[image_id]
       print(caption)

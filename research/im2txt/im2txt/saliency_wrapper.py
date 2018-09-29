@@ -39,7 +39,6 @@ import os.path as osp
 slim=tf.contrib.slim
 import scipy
 import sys
-sys.path.append('gradcam')
 
 def transparent_cmap(cmap, N=255):
   "Copy colormap and set alpha values"
@@ -84,7 +83,7 @@ class SaliencyWrapper(inference_wrapper_base.InferenceWrapperBase):
     im_resized = scipy.misc.imresize(im, (299, 299), interp='bilinear', mode=None)    
     im_resized = im_resized / 127.5 - 1.0
 
-    # find gender predicitions per pixel
+    # find gender predictions per pixel
     vocab_id = word_id
     sentence_id = word_index
     saliency = -np.log(softmaxes[:, sentence_id, vocab_id])

@@ -1,4 +1,4 @@
-# Anja: TODO
+# Compute GradCam with ground-truth captions as input
 
 from __future__ import absolute_import
 from __future__ import division
@@ -27,7 +27,7 @@ def prepare_resize_gradcam(grad_mask_2d, w, h):
   mask_grayscale_upscaled = np.clip((grad_mask_2d_upscaled - vmin) / (vmax - vmin), 0, 1)
   return mask_grayscale_upscaled
 
-coco_dir = '../im2txt/data/mscoco/'
+coco_dir = 'data/mscoco/'
 dataType = 'val2014'
 coco_masks = '{}/masks/{}/'.format(coco_dir, dataType)
 
@@ -39,7 +39,7 @@ def evaluate(checkpoint_path, vocab_file, model_name, img_path, save_path):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path = 'data/mscoco/annotations/captions_val2014.json'
+  json_path = coco_dir + '/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
@@ -49,12 +49,12 @@ def evaluate(checkpoint_path, vocab_file, model_name, img_path, save_path):
       caption = entry['caption']
       caption = caption.lower()
       tokens = caption.split(' ')
-      if '_man' in img_path: look_for = 'man' # Anja: expect a certain filename
-      elif '_woman' in img_path: look_for = 'woman' # Anja: expect a certain filename
+      if '_man' in img_path: look_for = 'man'
+      elif '_woman' in img_path: look_for = 'woman'
       else: assert(False)
       if look_for in tokens:
         json_dict[image_id] = caption
-    if len(json_dict) == 500: break # Anja ?
+    if len(json_dict) == 500: break
 
   image_ids = json_dict.keys()
 
@@ -64,7 +64,7 @@ def evaluate(checkpoint_path, vocab_file, model_name, img_path, save_path):
   for i, image_id in enumerate(image_ids):
     image_id = int(image_id)
     #sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-    filename = '../im2txt/data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
+    filename = coco_dir + '/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
 
     coco_mask_file = '%s/COCO_%s_%012d.npy' %(coco_masks, dataType, image_id)
     coco_mask = np.load(coco_mask_file)
@@ -93,8 +93,7 @@ def evaluate(checkpoint_path, vocab_file, model_name, img_path, save_path):
         met = metrics.heatmap_metrics(coco_mask, mask_grayscale_upscaled, gt_type='human', SIZE=coco_mask.shape)
         pointing_sum += met.pointing()
         global_count += 1
-  #print("\ncount: %d instances" % (global_count))
-  #print("pointing: %.5f" % float(pointing_sum/global_count))
+
   return (global_count, float(pointing_sum/global_count))
 
 def parse_args():

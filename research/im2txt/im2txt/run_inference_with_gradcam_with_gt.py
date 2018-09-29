@@ -33,6 +33,8 @@ from im2txt import configuration
 from im2txt import gradcam_wrapper
 from im2txt.inference_utils import vocabulary
 
+coco_dir = 'data/mscoco/'
+
 FLAGS = tf.flags.FLAGS
 
 tf.flags.DEFINE_string("checkpoint_path", "", "Model checkpoint file.")
@@ -66,7 +68,7 @@ def main(_):
   if image_ids[-1] == '':
     image_ids = image_ids[0:-1]
 
-  json_path = './data/mscoco/annotations/captions_val2014.json' 
+  json_path = coco_dir + '/annotations/captions_val2014.json'
   json_data = json.load(open(json_path, 'r'))
   json_dict = {}
   for entry in json_data['annotations']:
@@ -76,15 +78,15 @@ def main(_):
       caption = entry['caption']
       caption = caption.lower()
       tokens = caption.split(' ')      
-      if '_man' in FLAGS.img_path: look_for = 'man'        # Anja: expect a certain filename
-      elif '_woman' in FLAGS.img_path: look_for = 'woman'  # Anja: expect a certain filename
+      if '_man' in FLAGS.img_path: look_for = 'man'
+      elif '_woman' in FLAGS.img_path: look_for = 'woman'  
       else: assert(False)
       if look_for in tokens:
         json_dict[image_id] = caption
-    if len(json_dict) == 500: break # Anja: necessary?
+    if len(json_dict) == 500: break
 
   image_ids = json_dict.keys()
-  assert(len(image_ids)==500) # Anja: necessary?
+  #assert(len(image_ids)==500)
 
   with tf.Session(graph=g) as sess:
     # Load the model from checkpoint.
@@ -94,11 +96,9 @@ def main(_):
     for i, image_id in enumerate(image_ids):
       image_id = int(image_id)
       sys.stdout.write('\r%d/%d' %(i, len(image_ids)))
-      filename = './data/mscoco/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg' 
+      filename = coco_dir + '/images/val2014/COCO_val2014_' + "%012d" % (image_id) +'.jpg'
       with tf.gfile.GFile(filename, "r") as f:
         image = f.read()
-      if image_id not in json_dict: # Anja: unnecessary as image_ids = json_dict.keys()
-        assert(False)
       caption = json_dict[image_id]
       print(caption)
       if caption[-1] == '.':
