@@ -38,23 +38,6 @@ def table_2_main():
             print("{0:.3f}".format(model_results['outcome_divergence']))
 
 def table_3_main():
-    print('=============== Saliency ')
-    import ipdb; ipdb.set_trace()
-    for split_name, img_paths in datasets_pointing:
-        print('---------------------- %s ----------------------' % split_name)
-        img_path_w = img_paths[0]
-        img_path_m = img_paths[1]
-        if 'val' in img_path_w: save_path = save_path_saliency % 'val'
-        elif 'test' in img_path_w: save_path = save_path_saliency % 'test'
-        else: assert(False)
-        all_results = analysis_computer.pointing(img_path_w, img_path_m, vocab_file, save_path, checkpoint_path, 'saliency')
-        print('Model\tWoman\tMan\tAll')
-        for model, model_results in all_results.iteritems():
-            print(model, end='\t')
-            print("{0:.2f}".format(model_results['woman']*100),end='\t')
-            print("{0:.2f}".format(model_results['man']*100),end='\t')
-            print("{0:.2f}".format(model_results['all']*100))
-
     print('=============== Grad-Cam ')
     for split_name, img_paths in datasets_pointing:
         print('---------------------- %s ----------------------' % split_name)
@@ -64,6 +47,22 @@ def table_3_main():
         elif 'test' in img_path_w: save_path = save_path_gradcam % 'test'
         else: assert(False)
         all_results = analysis_computer.pointing(img_path_w, img_path_m, vocab_file, save_path, checkpoint_path, 'gradcam')
+        print('Model\tWoman\tMan\tAll')
+        for model, model_results in all_results.iteritems():
+            print(model, end='\t')
+            print("{0:.2f}".format(model_results['woman']*100),end='\t')
+            print("{0:.2f}".format(model_results['man']*100),end='\t')
+            print("{0:.2f}".format(model_results['all']*100))
+
+    print('=============== Saliency ')
+    for split_name, img_paths in datasets_pointing:
+        print('---------------------- %s ----------------------' % split_name)
+        img_path_w = img_paths[0]
+        img_path_m = img_paths[1]
+        if 'val' in img_path_w: save_path = save_path_saliency % 'val'
+        elif 'test' in img_path_w: save_path = save_path_saliency % 'test'
+        else: assert(False)
+        all_results = analysis_computer.pointing(img_path_w, img_path_m, vocab_file, save_path, checkpoint_path, 'saliency')
         print('Model\tWoman\tMan\tAll')
         for model, model_results in all_results.iteritems():
             print(model, end='\t')
@@ -123,12 +122,12 @@ def table_2_supp():
 # --------------------------- Parse Arguments ---------------------------------- #
 
 experiment_functions = OrderedDict([
-    #('table_1_main',table_1_main),
-    #('table_2_main',table_2_main),
+    ('table_1_main',table_1_main),
+    ('table_2_main',table_2_main),
     ('table_3_main',table_3_main),
-    #('figure_3_main',figure_3_main),
-    #('table_1_supp',table_1_supp),
-    #('table_2_supp',table_2_supp)
+    ('figure_3_main',figure_3_main),
+    ('table_1_supp',table_1_supp),
+    ('table_2_supp',table_2_supp)
 ])
 experiment_names = experiment_functions.keys()
 
