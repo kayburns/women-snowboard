@@ -21,9 +21,17 @@ To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~
 #### Download the Data
 
 Our datasets are build off the [
-dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `caption-bias/research/im2txt/data/mscoco`.
+MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `caption-bias/research/im2txt/data/mscoco`.
 
-We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows (note: this is the data folder in the higher level im2txt directory):
+We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git) as well as a ["Balanced split"](data/balanced_split/) which we define.  Our "Balanced split" contain 500 randomly selected images with women, and 500 randomly selected images with men. 
+
+---- One option ----- 
+
+You can use `./setup.sh` to download data, pre-trained models, and pre-extracted captions.  You can optionally provide a path to the MSCOCO dataset and the script will automatically create a softlink for the MSCOCO dataset in the "data" folder.  If you would like to do this run `.setup.sh PATH/TO/MSCOCO`.
+
+---- Second option ---- 
+
+It can be downloaded as follows (note: this is the data folder in the higher level im2txt directory):
 
 ```
 cd ./data/
@@ -34,13 +42,9 @@ curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/
 curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
 ```
 
-We also construct a ["Balanced split"](data/balanced_split/), where we randomly choose 500 images with women and 500 images with men from the "Bias split".
-
 #### Data Preprocessing: Creating Masked Images
 
-The Appearance Confusion Loss requires masked images. To create masks, please see the code for [creating masked images](scripts/SegmentationMasks.ipynb).
-
-In order to evaluate the GradCam/Saliency maps with the pointing game, we additionally save binary person masks. Please, see the code [here](im2txt/save_coco_person_segmentations.py).
+The Appearance Confusion Loss requires images in which humans are blocked out to train.  Additionally, to evaluate GradCam/Saliency maps with the pointing game, we save binary person masks (everything except the person is masked out).  To create this, please see code to create [Segmentation Masks](scripts/SegmentationMasks.ipynb).
 
 #### Data Preprocessing: TFRecord Files
 
