@@ -67,8 +67,8 @@ python im2txt/data/build_scripts/build_mscoco_blocked_and_biased.py
 The balanced split requires tfrecord files of a single gender. To create those:
 ```
 python im2txt/data/build_scripts/build_mscoco_single_gender_blocked.py
- --train_image_dir=data/mscoco/train2014 \
- --val_image_dir=data/mscoco/val2014 \
+ --train_image_dir=data/mscoco/images/train2014 \
+ --val_image_dir=data/mscoco/images/val2014 \
  --train_captions_file=data/mscoco/annotations/captions_train2014.json \
  --val_captions_file=data/mscoco/annotations/captions_val2014.json \
  --output_dir=im2txt/data/${GENDER} \
