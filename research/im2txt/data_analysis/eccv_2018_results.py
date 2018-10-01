@@ -3,7 +3,7 @@ from data_analysis_base import AnalysisBaseClass
 import sys
 import argparse
 from collections import OrderedDict
-
+import numpy as np
 
 # ------------------------- Helpers to Run Experiments ----------------------- #
 
@@ -88,13 +88,18 @@ def table_1_supp():
         results = analysis_computer.biased_objects(
             './data/captions_only_valtrain2014.json', id_list
         )
+        for word, word_results in results.iteritems():
+            print ('For word: %s' % word)
+            gt_ratio = word_results.pop('gt_ratio')
+            print ("Model name\tError\tDelta Ratio") 
+	    for model, model_results in word_results.iteritems():
+                print(model, end='\t')
+                print("{0:.3f}".format(model_results['error']),end='\t')
+                print("{0:.3f}".format(
+                    np.abs(gt_ratio-model_results['delta_ratio'])
+                ))
+                print ("\n")
         import pdb; pdb.set_trace()
-        for model, model_results in results.iteritems():
-            print('model name: %s' % model)
-            print('confidence\taccuracy')
-            for i, result_i in enumerate(model_results):
-                print(i+1, end='\t')
-                print("{0:.2f}".format(result_i*100))
 
 def table_2_supp():
     # Get caption results

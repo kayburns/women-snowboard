@@ -496,8 +496,8 @@ class AnalysisBaseClass:
         self,
         gt_path,
         filter_imgs=[], 
-        models_to_test=['Baseline-FT', 'Equalizer w/o ACL', \
-            'Equalizer w/o Confident', 'Equalizer']
+        models_to_test=['Baseline-FT', 'Equalizer-w/o-ACL', \
+            'Equalizer-w/o-Confident', 'Equalizer']
     ):
         """
         Compute error and ratio for individual biased objects. Should replicate
@@ -512,7 +512,10 @@ class AnalysisBaseClass:
 
         gt = AnalysisBaseClass.format_gt_captions(gt_path)
 
+        biased_objects_results = OrderedDict() 
         for bias_word in bias_words:
+            print("Computing metrics for word %s" %bias_word)
+            biased_objects_results[bias_word] = OrderedDict() 
 
 #            print "Bias word is: %s" %bias_word
             anno_ids = open('data/object_lists/intersection_%s_person.txt' %bias_word).readlines()
@@ -529,8 +532,8 @@ class AnalysisBaseClass:
             gt_woman = sum([1. for item in gt_filtered if \
                           gender_dict[item['image_id']]['female'] == 1])
             gt_ratio = gt_woman/gt_man
+            biased_objects_results[bias_word]['gt_ratio'] = gt_ratio
 
-            biased_object_results = {}
 
             for caption_path in caption_paths_local:
                 predictions = json.load(open(caption_path[1]))
@@ -544,10 +547,10 @@ class AnalysisBaseClass:
                 error = AnalysisBaseClass.get_error(captions, gender_dict,
                                             AnalysisBaseClass.man_word_list_synonyms, 
                                             AnalysisBaseClass.woman_word_list_synonyms)
-                biased_object_results[caption_path[0]] = {}
-                biased_object_results[caption_path[0]]['error'] = error
-                biased_object_results[caption_path[0]]['delta_ratio'] = ratio
-        return biased_object_results
+                biased_objects_results[bias_word][caption_path[0]] = {}
+                biased_objects_results[bias_word][caption_path[0]]['error'] = error
+                biased_objects_results[bias_word][caption_path[0]]['delta_ratio'] = ratio
+        return biased_objects_results
 
     @staticmethod
     def bias_amplification_objects(predictions):

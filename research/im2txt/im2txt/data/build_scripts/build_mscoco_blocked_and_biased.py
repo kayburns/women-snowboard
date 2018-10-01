@@ -213,7 +213,7 @@ def create_fine_tune_dataset():
           "COCO_train2014_000000457587.jpg"]
     """
     fine_tune_dataset_images = []
-    filepath = '/data1/caption_bias/models/research/im2txt/im2txt/data/raw-data/reducingbias/data/COCO/'
+    filepath = 'data/bias_splits/'
     target_train = filepath + 'train.data'
     target_val = filepath + 'dev.data'
     target_test = filepath + 'test.data'
