@@ -8,6 +8,7 @@ This repository contains everything necessary to replicate the results in our 20
 
 - Tensorflow v1.0 or greater
 - NumPy
+- Python 2
 - nltk, punkt (nltk.download('punkt'))
 - pattern
 - unzip
@@ -16,12 +17,12 @@ Or see the [`requirements.txt`](../../requirements.txt) file.
 
 ### Prepare the data.
 
-To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both under `caption-bias/research/im2txt`.
+To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both under `women-snowboard/research/im2txt`.
 
 #### Download the Data
 
 Our datasets are build off the [
-MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `caption-bias/research/im2txt/data/mscoco`.
+MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `women-snowboard/research/im2txt/data/mscoco`.
 
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git) as well as a ["Balanced split"](data/balanced_split/) which we define.  Our "Balanced split" contain 500 randomly selected images with women, and 500 randomly selected images with men. 
 
