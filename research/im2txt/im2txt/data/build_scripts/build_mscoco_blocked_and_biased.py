@@ -219,7 +219,7 @@ def create_fine_tune_dataset():
     target_test = filepath + 'test.data'
 
     for dataset in [target_train, target_val, target_test]:
-        samples = pickle.load(open(dataset))
+        samples = pickle.load(open(dataset, 'rb'))
         for sample in samples:
             fine_tune_dataset_images.append(sample['img'])
 
@@ -247,7 +247,8 @@ def _to_sequence_example(image, decoder, vocab):
     return
 
   # corresponding blocked image
-  encoded_filename=os.path.join(FLAGS.blocked_dir, image.filename) 
+  blocked_img_filename = "/".join(image.filename.split('/')[1:])
+  encoded_filename=os.path.join(FLAGS.blocked_dir, blocked_img_filename) 
   with tf.gfile.FastGFile(encoded_filename, "r") as f:
     encoded_blocked_image = f.read()
   
@@ -394,6 +395,10 @@ def _create_vocab(captions):
   Returns:
     A Vocabulary object.
   """
+  if tf.gfile.Exists(FLAGS.word_counts_output_file):
+    vocab = vocabulary.Vocabulary(FLAGS.word_counts_output_file)
+    return Vocabulary(vocab.vocab, vocab.unk_id)
+  
   print("Creating vocabulary.")
   counter = Counter()
   for c in captions:
@@ -513,7 +518,7 @@ def main(unused_argv):
   train_captions = [c for image in train_dataset for c in image.captions]
   vocab = _create_vocab(train_captions)
   print("Vocabulary created.")
-  import pdb; pdb.set_trace()
+
   print("Processing dataset.")
   _process_dataset("train", train_dataset, vocab, FLAGS.train_shards)
   print("Train processed.")

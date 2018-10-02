@@ -354,6 +354,10 @@ def _create_vocab(captions):
   Returns:
     A Vocabulary object.
   """
+  if tf.gfile.Exists(FLAGS.word_counts_output_file):
+    vocab = vocabulary.Vocabulary(FLAGS.word_counts_output_file)
+    return Vocabulary(vocab.vocab, vocab.unk_id)
+  
   print("Creating vocabulary.")
   counter = Counter()
   for c in captions:
