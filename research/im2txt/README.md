@@ -8,6 +8,7 @@ This repository contains everything necessary to replicate the results in our 20
 
 - Tensorflow v1.0 or greater
 - NumPy
+- Python 2
 - nltk, punkt (nltk.download('punkt'))
 - pattern
 - unzip
