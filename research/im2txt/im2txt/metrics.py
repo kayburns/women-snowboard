@@ -14,13 +14,6 @@ def read_json(t_file):
   j_file = open(t_file).read()
   return json.loads(j_file)
 
-#seth_data = '/backup/seth/data/'
-#test_mpii_descriptions = read_json('%s/mpii/annotations/test_exp_anno.json' %seth_data)
-mpii_tag_dict = {}
-#for t in test_mpii_descriptions.values():
-#  mpii_tag_dict[t['id']] = t['iid']
-
-
 class heatmap_metrics(object):
 
   def __init__(self, gt_map, gen_map, gt_type='human', SIZE=(14,14)):
@@ -46,14 +39,6 @@ class heatmap_metrics(object):
     gen = gen_map
     gt = gt_map
 
-    #if gt_type == 'human':
-    #  gt = gt_map
-    #elif gt_type == 'random':
-    #  gt = random_anno()
-    #elif gt_type == 'uniform':
-    #  gt = uniform_anno()
-    #else: 
-    #  raise Exception ("Must pick valid annotation type")
     if gt_type == 'human':
       gen = gen_map
     elif gt_type == 'random':
@@ -63,17 +48,10 @@ class heatmap_metrics(object):
     else:
       raise Exception ("Must pick valid annotation type")
 
-    #gt = np.sum(gt,axis=0)
-    #gt = gt/np.sum(gt)
-    #gt = gt.T
-
     if len(gen.shape) > 2:
       gen = process_multi_channel(gen)
 
     assert gt.shape == gen.shape
-    #assert np.abs(np.sum(gt)-1.0) < 0.00005
-    #if not (np.abs(np.sum(gen)-1.0) < 0.00005):
-    #  import ipdb; ipdb.set_trace()
     assert np.abs(np.sum(gen)-1.0) < 0.00005
     gt_maps.append(gt)
     gen_maps.append(gen)
@@ -85,7 +63,6 @@ class heatmap_metrics(object):
   def earth_mover(self, distance='manhattan'):
     #make distance matrix
 
-    #ditance metrix
     def manhattan(a,b):
       return np.abs(a[0]-b[0]) + np.abs(a[1]-b[1])
 
@@ -154,9 +131,6 @@ class heatmap_metrics(object):
       gen = mean_rank_preprocess(gen)
       gt = mean_rank_preprocess(gt)
       dist, p_val = spearmanr(gen, gt, axis=None)
-      #gen_rank = argsort_tie(gen) 
-      #gt_rank = argsort_tie(gt)
-      #d = np.correlate(gen_rank, gt_rank)
       distances.append(dist)
     mrc = np.mean(distances)
     return mrc, distances
@@ -179,22 +153,14 @@ class heatmap_metrics(object):
           prev = s
         sorted_mat[a] = count
         i += 1
-      #sorted_mat = sorted_mat/np.linalg.norm(sorted_mat)
       return sorted_mat
 
     distances = []
     for gen, gt in zip(self.gen, self.gt):
       gen = mean_rank_preprocess(gen)
       gt = mean_rank_preprocess(gt)
-      #import pdb; pdb.set_trace()
-      #if self.gt_type == 'uniform':
-      #  gen_rank = range(len(gen))
-      #else:
       gen_rank = argsort_tie(gen) 
       gt_rank = argsort_tie(gt)
-      #d = spearmanr(gen_rank, gt_rank)
-      #d = np.correlate(gen_rank, gt_rank)
-      #if d[0] > 30000: import pdb; pdb.set_trace()
       dist, p_val = spearmanr(gen_rank, gt_rank, axis=None)
       distances.append(dist)
     mrc = np.mean(distances)

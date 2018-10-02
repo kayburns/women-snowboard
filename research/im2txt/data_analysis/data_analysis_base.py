@@ -162,7 +162,7 @@ class AnalysisBaseClass:
         model, computes pointing accuracy for women, men and overall. 
         map_type can be 'gradcam' or 'saliency'.
         """
-        all_results = {}
+        all_results = OrderedDict()
         for caption_path in self.caption_paths:
             model_name = os.path.basename(caption_path[1]).split('.')[0]            
             model_results = {}
@@ -177,7 +177,6 @@ class AnalysisBaseClass:
                 from evaluate_saliency_with_gt import evaluate
                 count_w, pointing_acc_w = evaluate(checkpoint_path % model_name, vocab_file, model_name, img_path_w, save_path)
                 count_m, pointing_acc_m = evaluate(checkpoint_path % model_name, vocab_file, model_name, img_path_m, save_path)
-                model_results = {}
             else: assert(False)
 
             model_results['woman'] = pointing_acc_w
