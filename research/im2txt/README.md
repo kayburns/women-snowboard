@@ -20,7 +20,7 @@ To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~
 
 #### Download the Data
 
-Our datasets are build off the [
+Our datasets are build off of the [mscoco 
 dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `caption-bias/research/im2txt/data/mscoco`.
 
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git). It can be downloaded as follows (note: this is the data folder in the higher level im2txt directory):
