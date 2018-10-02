@@ -93,8 +93,8 @@ import random
 import sys
 import threading
 
-
-
+sys.path.append(os.path.abspath('im2txt/inference_utils/'))
+import vocabulary
 import nltk.tokenize
 import numpy as np
 import tensorflow as tf

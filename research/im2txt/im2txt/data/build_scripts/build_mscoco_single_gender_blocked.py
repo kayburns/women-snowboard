@@ -95,7 +95,7 @@ import threading
 import pdb
 import pickle
 
-sys.path.append(os.path.abspath('../inference_utils/'))
+sys.path.append(os.path.abspath('im2txt/inference_utils/'))
 import vocabulary
 
 import nltk.tokenize
