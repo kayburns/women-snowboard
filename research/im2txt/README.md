@@ -16,7 +16,7 @@ Or see the [`requirements.txt`](../../requirements.txt) file.
 
 ### Prepare the data.
 
-To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both under `caption-bias/research/im2txt`.
+To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both under `women-snowboard/research/im2txt`.
 
 #### Download the Data
 
