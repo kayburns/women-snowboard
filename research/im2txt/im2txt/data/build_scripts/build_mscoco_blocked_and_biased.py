@@ -247,7 +247,12 @@ def _to_sequence_example(image, decoder, vocab):
     return
 
   # corresponding blocked image
-  blocked_img_filename = "/".join(image.filename.split('/')[1:])
+  blocked_img_filename = image.filename.split('/')[3:]
+  img_id = int(blocked_img_filename[-1].split('.')[0].split('_')[-1])
+  block_type = FLAGS.blocked_dir.split('_')[-1].split('/')[0]
+  img_type = 'png'
+  blocked_img_filename[-1] = str(img_id)+'_'+block_type+'.'+img_type
+  blocked_img_filename = '/'.join(blocked_img_filename)
   encoded_filename=os.path.join(FLAGS.blocked_dir, blocked_img_filename) 
   with tf.gfile.FastGFile(encoded_filename, "r") as f:
     encoded_blocked_image = f.read()
@@ -450,7 +455,7 @@ def _load_and_process_metadata(captions_file, image_dir):
     A list of ImageMetadata.
   """
   with tf.gfile.FastGFile(captions_file, "r") as f:
-    caption_data = json.load(f)
+      caption_data = json.load(f)
 
   # Extract the filenames.
   id_to_filename = [(x["id"], x["file_name"]) for x in caption_data["images"]]
@@ -503,9 +508,9 @@ def main(unused_argv):
   # Load image metadata from caption files.
   print("Loading and processing metadata.")
   mscoco_train_dataset = _load_and_process_metadata(FLAGS.train_captions_file,
-                                                    FLAGS.train_image_dir)
+          FLAGS.train_image_dir)
   mscoco_val_dataset = _load_and_process_metadata(FLAGS.val_captions_file,
-                                                  FLAGS.val_image_dir)
+          FLAGS.val_image_dir)
   print("Metadata processing complete.")
 
   val_cutoff = int(0.5 * len(mscoco_val_dataset))
