@@ -132,6 +132,8 @@ tf.flags.DEFINE_integer("min_word_count", 4,
                         "training set for inclusion in the vocabulary.")
 tf.flags.DEFINE_string("word_counts_output_file", "/tmp/word_counts.txt",
                        "Output vocabulary file of word counts.")
+tf.flags.DEFINE_string("blocked_dir", "/tmp/blocked_img_dir",
+                               "Directory with blocked images.")
 
 tf.flags.DEFINE_string("gender", ".",
                        "Gender of tfrecord file to create.")
@@ -212,7 +214,7 @@ def _get_blocked_images_dict():
         "COCO_train2014_000000457587.jpg"]
   """
   blocked_images = []
-  filepath = '../bias_splits/'
+  filepath = 'data/bias_splits/'
   target_train = filepath + 'train.data'
   target_val = filepath + 'dev.data'
   target_test = filepath + 'test.data'
@@ -254,7 +256,7 @@ def get_gendered_image_names_and_counts(mode, gender):
         )
     wimages = []
     files = []
-    filepath = '../bias_splits/'
+    filepath = 'data/bias_splits/'
     if mode == 'train2014':
       target_train = filepath + 'train.data'
       files = [target_train]
@@ -292,8 +294,32 @@ def _to_sequence_example(image, decoder, vocab, blocked_images=[]):
     print("Skipping file with invalid JPEG data: %s" % image.filename)
     return
 
-  
-  if image.filename in blocked_image"../blocked_images" + image.filename 
+  # corresponding blocked image
+  blocked_img_filename = image.filename.split('/')[3:]
+  img_id = int(blocked_img_filename[-1].split('.')[0].split('_')[-1])
+  block_type = FLAGS.blocked_dir.split('_')[-1].split('/')[0]
+  img_type = 'png'
+  blocked_img_filename[-1] = str(img_id)+'_'+block_type+'.'+img_type
+  blocked_img_filename = '/'.join(blocked_img_filename)
+  encoded_filename=os.path.join(FLAGS.blocked_dir, blocked_img_filename) 
+  fname = image.filename.split('.')
+  with tf.gfile.FastGFile(encoded_filename, "r") as f:
+    encoded_blocked_image = f.read()
+    
+  try:
+    decoder.decode_jpeg(encoded_blocked_image)
+  except (tf.errors.InvalidArgumentError, AssertionError):
+    print("Skipping file with invalid JPEG data: %s" % image.filename)
+    return
+
+  context = tf.train.Features(feature={
+    "image/image_id": _int64_feature(image.image_id),
+    "image/data": _bytes_feature(encoded_image), 
+    "image/blocked_data": _bytes_feature(encoded_blocked_image) 
+  })
+
+  """
+  if image.filename in blocked_images:
     with tf.gfile.FastGFile(encoded_filename, "r") as f:
       encoded_blocked_image = f.read()
     
@@ -314,6 +340,7 @@ def _to_sequence_example(image, decoder, vocab, blocked_images=[]):
         "image/image_id": _int64_feature(image.image_id),
         "image/data": _bytes_feature(encoded_image),
     })
+  """
 
   assert len(image.captions) == 1
   caption = image.captions[0]
@@ -322,6 +349,7 @@ def _to_sequence_example(image, decoder, vocab, blocked_images=[]):
       "image/caption": _bytes_feature_list(caption),
       "image/caption_ids": _int64_feature_list(caption_ids)
   })
+
   sequence_example = tf.train.SequenceExample(
       context=context, feature_lists=feature_lists)
 
