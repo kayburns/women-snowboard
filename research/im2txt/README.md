@@ -47,7 +47,7 @@ python im2txt/data/build_scripts/build_mscoco_blocked_and_biased.py \
  --val_captions_file=data/mscoco/annotations/captions_val2014.json \
  --output_dir=im2txt/data/bias_and_blocked \
  --word_counts_output_file="data/word_counts.txt" \
- --blocked_dir="im2txt/data/blocked_images_average/"
+ --blocked_dir="data/blocked_images_average/"
 ```
 
 The balanced split requires tfrecord files of a single gender. To create those:
@@ -59,7 +59,7 @@ python im2txt/data/build_scripts/build_mscoco_single_gender_blocked.py \
  --val_captions_file=data/mscoco/annotations/captions_val2014.json \
  --output_dir=im2txt/data/${GENDER} \
  --word_counts_output_file="data/word_counts.txt" \
- --blocked_dir="im2txt/data/blocked_images_average/"
+ --blocked_dir="data/blocked_images_average/" \
  --gender="${GENDER}"
 ```
 For gender = "man" or "woman".
