@@ -52,7 +52,6 @@ python im2txt/data/build_scripts/build_mscoco_blocked_and_biased.py \
 
 The balanced split requires tfrecord files of a single gender. To create those:
 
-What values can GENDER take?  (man/woman?).  Add in where captions will be saved to?
 ```
 python im2txt/data/build_scripts/build_mscoco_single_gender_blocked.py \
  --train_image_dir=data/mscoco/images/train2014 \
