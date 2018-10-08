@@ -401,6 +401,7 @@ def _create_vocab(captions):
     A Vocabulary object.
   """
   if tf.gfile.Exists(FLAGS.word_counts_output_file):
+    print("Reading vocabulary from %s" %FLAGS.word_counts_output_file)
     vocab = vocabulary.Vocabulary(FLAGS.word_counts_output_file)
     return Vocabulary(vocab.vocab, vocab.unk_id)
   
