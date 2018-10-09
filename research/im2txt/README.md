@@ -68,7 +68,6 @@ For gender = "man" or "woman".
 ## Training Models
 Training scripts are provided [here](train_scripts/).  
 
-
 ## Generating sentences.
 Run the following from `women-snowboard/research/im2txt`.
 ```
