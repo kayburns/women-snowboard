@@ -12,9 +12,7 @@ import os.path as osp
 import scipy
 import numpy as np
 import argparse
-sys.path.append('./')
-print(sys.path)
-print(os.getcwd())
+
 from im2txt import metrics
 
 def prepare_resize_gradcam(grad_mask_2d, w, h):
