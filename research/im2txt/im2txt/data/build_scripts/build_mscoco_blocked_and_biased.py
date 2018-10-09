@@ -523,7 +523,7 @@ def main(unused_argv):
   train_captions = [c for image in train_dataset for c in image.captions]
   vocab = _create_vocab(train_captions)
   print("Vocabulary created.")
-
+  import pdb; pdb.set_trace()
   print("Processing dataset.")
   _process_dataset("train", train_dataset, vocab, FLAGS.train_shards)
   print("Train processed.")

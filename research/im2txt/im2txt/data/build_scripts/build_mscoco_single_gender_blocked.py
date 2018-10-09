@@ -138,6 +138,9 @@ tf.flags.DEFINE_string("blocked_dir", "/tmp/blocked_img_dir",
 tf.flags.DEFINE_string("gender", ".",
                        "Gender of tfrecord file to create.")
 
+tf.flags.DEFINE_string("gender", ".",
+                       "Gender of tfrecord file to create.")
+
 tf.flags.DEFINE_integer("num_threads", 8,
                         "Number of threads to preprocess the images.")
 
