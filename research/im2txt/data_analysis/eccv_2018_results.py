@@ -99,7 +99,6 @@ def table_1_supp():
                     np.abs(gt_ratio-model_results['delta_ratio'])
                 ))
                 print ("\n")
-        import pdb; pdb.set_trace()
 
 def table_2_supp():
     # Get caption results
