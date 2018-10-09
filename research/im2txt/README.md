@@ -26,22 +26,7 @@ MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO 
 
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git) as well as a ["Balanced split"](data/balanced_split/) which we define.  Our "Balanced split" contain 500 randomly selected images with women, and 500 randomly selected images with men. 
 
----- One option ----- 
-
 You can use `./setup.sh` to download data, pre-trained models, and pre-extracted captions.  You can optionally provide a path to the MSCOCO dataset and the script will automatically create a softlink for the MSCOCO dataset in the "data" folder.  If you would like to do this run `.setup.sh PATH/TO/MSCOCO`.
-
----- Second option ---- 
-
-It can be downloaded as follows (note: this is the data folder in the higher level im2txt directory):
-
-```
-cd ./data/
-mkdir bias_splits
-cd bias_splits/
-curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/dev.data
-curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/train.data
-curl -O https://raw.githubusercontent.com/uclanlp/reducingbias/master/data/COCO/test.data
-```
 
 #### Data Preprocessing: Creating Masked Images
 
