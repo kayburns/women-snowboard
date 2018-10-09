@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#INIT_MODEL_DIR: final_weights_eccv2018/inception_checkpoint
+#WOMAN_MSCOCO_DIR: im2txt/data/woman
+#WOMAN_MSCOCO_DIR: im2txt/data/man
+#INCEPTION_CHECKPOINT: final_weights_eccv2018/inception_checkpoint
+#MODEL: where you would like to save your trained models
+
 python im2txt/train.py \
   --init_from=${INIT_MODEL_DIR}/train" \
   --input_file_pattern="${WOMAN_MSCOCO_DIR}/train-?????-of-00256" \
