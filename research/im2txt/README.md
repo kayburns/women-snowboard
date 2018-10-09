@@ -69,7 +69,7 @@ For gender = "man" or "woman".
 Training scripts are provided [here](train_scripts/).  
 
 #TODO double check these, and Kaylee, please change names of models :)
-Each training script requires inputs including pretrained weights, TFRecord files, and which file to save to.  For example, the [Baseline-FT](train_scripts/train_baseline_ft.sh) script has the following command where INIT_MODEL_DIR='final_weights_eccv2018/mscoco_base', BLOCKED_MSCOCO_DIR='im2txt/data/bias_and_blocked', INCEPTION_CHECKPOINT='final_weights_eccv2018/inception_checkpoint', and TRAIN_DIR indicates where you would like to save trained models:
+Each training script requires inputs including pretrained weights, TFRecord files, and which file to save to.  For example, the [Baseline-FT](train_scripts/train_baseline_ft.sh) script has the following command.  Example values for each varialbe are: INIT_MODEL_DIR='final_weights_eccv2018/mscoco_base', BLOCKED_MSCOCO_DIR='im2txt/data/bias_and_blocked', INCEPTION_CHECKPOINT='final_weights_eccv2018/inception_checkpoint', and TRAIN_DIR indicates where you would like to save trained models:
 
 ```
 python im2txt/train.py \
