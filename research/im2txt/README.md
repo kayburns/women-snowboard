@@ -30,7 +30,7 @@ You can use `./setup.sh` to download data, pre-trained models, and pre-extracted
 
 #### Data Preprocessing: Creating Masked Images
 
-The Appearance Confusion Loss requires images in which humans are blocked out to train.  Additionally, to evaluate GradCam/Saliency maps with the pointing game, we save binary person masks (everything except the person is masked out).  To create this, please see code to create [Segmentation Masks](scripts/SegmentationMasks.ipynb).  Note that these scripts require the MSCOCO tools.  We expect these to be in your python path.
+The Appearance Confusion Loss requires images in which humans are blocked out to train.  Additionally, to evaluate GradCam/Saliency maps with the pointing game, we save binary person masks (everything except the person is masked out).  To create this, please see code to create [Segmentation Masks](scripts/SegmentationMasks.ipynb).  Note that these scripts require the [MSCOCO API](https://github.com/cocodataset/cocoapi).  We expect the API to be in your python path.
 
 #### Data Preprocessing: TFRecord Files
 
