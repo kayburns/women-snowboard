@@ -63,7 +63,7 @@ python im2txt/data/build_scripts/build_mscoco_single_gender_blocked.py \
  --blocked_dir="data/blocked_images_average/" \
  --gender="${GENDER}"
 ```
-For gender = "man" or "woman".
+
 
 ## Training Models
 Training scripts are provided [here](train_scripts/).  
