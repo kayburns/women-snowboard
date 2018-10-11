@@ -72,7 +72,7 @@ Training scripts are provided [here](train_scripts/).
 Each training script requires inputs including pretrained weights, TFRecord files, and which file to save to.  For example, train the [Baseline-FT](train_scripts/train_baseline_ft.sh) model as follows:
 
 ```
-INIT_MODEL_DIR='final_weights_eccv2018/mscoco_base'
+INIT_MODEL_DIR='final_weights_eccv2018/mscoco_base/train'
 BLOCKED_MSCOCO_DIR='im2txt/data/bias_and_blocked'
 INCEPTION_CHECKPOINT='final_weights_eccv2018/inception_checkpoint'
 MODEL_DIR='/where/you/want/to/save/model'
