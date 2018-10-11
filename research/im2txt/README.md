@@ -79,7 +79,7 @@ MODEL_DIR='/where/you/want/to/save/model'
 ./train_baseline_ft.sh
 ```
 
-Double check the experiment bash script to see which variables should be set.
+Different experiments require different variable, so double check the experiment bash script to see which variables should be set.
 
 ## Generating sentences.
 Run the following from `women-snowboard/research/im2txt`.
