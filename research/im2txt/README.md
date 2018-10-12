@@ -21,6 +21,20 @@ To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~
 
 #### Download the Data
 
+The model requires a pretrained Inception v3 checkpoint file to initialize the parameters of its image encoder submodel.
+
+Run the following commands to download the Inception v3 checkpoint.
+
+```
+# Location to save the Inception v3 checkpoint.
+INCEPTION_DIR="${HOME}/final_weights_eccv2018/inception_checkpoint"
+mkdir -p ${INCEPTION_DIR}
+
+wget "http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz"
+tar -xvf "inception_v3_2016_08_28.tar.gz" -C ${INCEPTION_DIR}
+rm "inception_v3_2016_08_28.tar.gz"
+```
+
 Our datasets are build off the [
 MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `women-snowboard/research/im2txt/data/mscoco`.
 
