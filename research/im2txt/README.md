@@ -17,30 +17,18 @@ Or see the [`requirements.txt`](../../requirements.txt) file.
 
 ### Prepare the data.
 
-To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. Extract them both under `women-snowboard/research/im2txt`.
 
-The model requires a pretrained Inception v3 checkpoint file to initialize the parameters of its image encoder submodel.
-
-Run the following commands to download the Inception v3 checkpoint.
-
-```
-# Location to save the Inception v3 checkpoint.
-INCEPTION_DIR="${HOME}/final_weights_eccv2018/inception_checkpoint"
-mkdir -p ${INCEPTION_DIR}
-
-wget "http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz"
-tar -xvf "inception_v3_2016_08_28.tar.gz" -C ${INCEPTION_DIR}
-rm "inception_v3_2016_08_28.tar.gz"
-```
 
 #### Download the Data
 
-Our datasets are build off the [
+Our datasets are built off the [
 MSCOCO dataset](http://cocodataset.org/#download).  Our code expects the MSCOCO dataset to be in `women-snowboard/research/im2txt/data/mscoco`.
 
 We run our experiments on the "Bias split" defined in [Men Also Like Shopping (Zhao et. al.)](https://github.com/uclanlp/reducingbias.git) as well as a ["Balanced split"](data/balanced_split/) which we define.  Our "Balanced split" contain 500 randomly selected images with women, and 500 randomly selected images with men. 
 
-You can use `./setup.sh` to download data, pre-trained models, and pre-extracted captions.  You can optionally provide a path to the MSCOCO dataset and the script will automatically create a softlink for the MSCOCO dataset in the "data" folder.  If you would like to do this run `.setup.sh PATH/TO/MSCOCO`.
+You can use `./setup.sh` to download data, pre-trained models (including Inception-v3 which is the convolutional network base we use), and pre-extracted captions.  You can optionally provide a path to the MSCOCO dataset and the script will automatically create a softlink for the MSCOCO dataset in the "data" folder.  If you would like to do this run `.setup.sh PATH/TO/MSCOCO`.
+
+To skip training, use our [pretrained models](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_weights_eccv2018.zip) or the [captions](https://people.eecs.berkeley.edu/~lisa_anne/snowboard_misc/final_captions_eccv2018.zip) themselves. These are expected to be under `women-snowboard/research/im2txt` and will be automatically downloaded with `setup.sh`.
 
 #### Data Preprocessing: Creating Masked Images
 
@@ -82,7 +70,6 @@ python im2txt/data/build_scripts/build_mscoco_single_gender_blocked.py \
 ## Training Models
 Training scripts are provided [here](train_scripts/).  
 
-#TODO double check these, and Kaylee, please change names of models :)
 Each training script requires inputs including pretrained weights, TFRecord files, and which file to save to.  For example, train the [Baseline-FT](train_scripts/train_baseline_ft.sh) model as follows:
 
 ```
