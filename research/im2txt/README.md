@@ -17,8 +17,6 @@ Or see the [`requirements.txt`](../../requirements.txt) file.
 
 ### Prepare the data.
 
-
-
 #### Download the Data
 
 Our datasets are built off the [
