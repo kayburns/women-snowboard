@@ -5,7 +5,7 @@ numpy==1.14.2
 nltk==3.2.5
 scipy==0.19.1
 pyemd==0.5.1
-ipython==7.0.1
+ipython==7.16.3
 Pillow==5.3.0
 pattern==3.6
 pycocotools==2.0.0
